@@ -121,7 +121,7 @@ namespace NEOTwewyArchipelagoMod
                     if(currentValue != true)
                     {
                         SaveLoadController.Get<SaveDataField>().SetScenarioFlag(flag, true);
-                        MelonLogger.Msg($"Set {flag} to {alwaysOnFlags[i]}");
+                        //MelonLogger.Msg($"Set {flag} to true");
                     }
                 }
                 for (int i = 0; i < alwaysOffFlags.Count; i++)
@@ -131,7 +131,7 @@ namespace NEOTwewyArchipelagoMod
                     if (currentValue != false)
                     {
                         SaveLoadController.Get<SaveDataField>().SetScenarioFlag(flag, false);
-                        MelonLogger.Msg($"Set {flag} to {alwaysOffFlags[i]}");
+                        //MelonLogger.Msg($"Set {flag} to false");
                     }
                 }
 
@@ -298,7 +298,7 @@ namespace NEOTwewyArchipelagoMod
 
             try
             { //Change the current scene states
-                MelonLogger.Msg($"Scene Load {sceneName} was loaded.");
+                if (DEBUG) { MelonLogger.Msg($"Scene {sceneName} was loaded."); }
                 if (sceneName == "Battle")
                 { inBattle = true; }
                 else if (sceneName == "Field")
@@ -312,7 +312,7 @@ namespace NEOTwewyArchipelagoMod
             base.OnSceneWasUnloaded(buildIndex, sceneName);
             try
             { //Change the current scene states
-                MelonLogger.Msg($"Scene Unload {sceneName} was unloaded.");
+                if (DEBUG) { MelonLogger.Msg($"Scene {sceneName} was unloaded."); }
                 if (sceneName == "Battle")
                 { inBattle = false;}
                 else if (sceneName == "Field")

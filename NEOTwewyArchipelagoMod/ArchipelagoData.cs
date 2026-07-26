@@ -18,11 +18,12 @@ namespace NEOTwewyArchipelagoMod
             {//For all locations in our game we received from the server
                 if (entry.Value.ItemGame == Core.GAME_NAME)
                 {//If the item is in our game, we can use the normal itemID in the normal reward
-                    MelonLogger.Msg($"Location {entry.Value.LocationDisplayName} ({entry.Key}) has {entry.Value.ItemName} ({entry.Value.ItemId})");
-                    ScenarioRewardsDict.Add(entry.Key,entry.Value.ItemId);
-                } else
+                    if (Core.DEBUG) { MelonLogger.Msg($"Location {entry.Value.LocationDisplayName} ({entry.Key}) has {entry.Value.ItemName} ({entry.Value.ItemId})"); }
+                    ScenarioRewardsDict.Add(entry.Key, entry.Value.ItemId);
+                }
+                else
                 {//If the item is not originally from our game we need to use the archipelago replacement item
-                    MelonLogger.Msg($"Location {entry.Value.LocationDisplayName} ({entry.Key}) has {entry.Value.ItemName} ({entry.Value.ItemId})");
+                    if(Core.DEBUG) { MelonLogger.Msg($"Location {entry.Value.LocationDisplayName} ({entry.Key}) has {entry.Value.ItemName} ({entry.Value.ItemId})"); }
                     ScenarioRewardsDict.Add(entry.Key, Core.ARCHIPELAGO_ITEM_ID);
                 }
                         

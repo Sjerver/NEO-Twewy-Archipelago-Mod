@@ -15,7 +15,7 @@ namespace NEOTwewyArchipelagoMod
     {
         public static void Postfix(ScenarioRewards.ELabel __0,int __1)
         {
-            MelonLogger.Msg( $"ReserveScenarioReward called: ID={__0}, Index={__1}");
+            //MelonLogger.Msg( $"ReserveScenarioReward called: ID={__0}, Index={__1}");
 
             ScenarioRewards scenarioRewards = MasterDataBase<ScenarioRewards>.Get((int)__0);
 
@@ -342,11 +342,11 @@ namespace NEOTwewyArchipelagoMod
     {
         public static void Postfix(ComicEventManager __instance)
         {
-            MelonLogger.Msg($"Before: {__instance.m_IsSkipExecutable}");
+            //MelonLogger.Msg($"Before: {__instance.m_IsSkipExecutable}");
             //Always make sure you can fastword in dialogue scenes
             __instance.m_IsSkipExecutable = true;
 
-            MelonLogger.Msg($"After: {__instance.m_IsSkipExecutable}");
+            //MelonLogger.Msg($"After: {__instance.m_IsSkipExecutable}");
         }
     }
 
