@@ -21,6 +21,7 @@ The default key is F5 and can be changed in the config file.
 
 The Steam version of NEO: The World Ends with You is required in order to play this game.
 
+You can find the corresponding APWorld in this repository: https://github.com/Sjerver/Archipelago-NEO-TWEWY/tree/main.
 
 # Installing this Mod
 
