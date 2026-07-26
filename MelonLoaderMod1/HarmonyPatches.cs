@@ -1,45 +1,32 @@
 ﻿using HarmonyLib;
 using Il2Cpp;
+using Il2CppComicEvent;
 using Il2CppMaster;
 using Il2CppScenario;
 using Il2CppUI.Utility;
 using MelonLoader;
 using Newtonsoft.Json.Linq;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using UnityEngine;
+
 
 namespace NEOTwewyArchipelagoMod
 {
-    /*
-     * Log when a ScenerioReward is reserved.
-     */
     [HarmonyPatch(typeof(FieldManager), "ReserveScenarioReward")]
     public static class PatchReserveScenarioReward
     {
         public static void Postfix(ScenarioRewards.ELabel __0,int __1)
         {
-            MelonLogger.Msg(
-                $"ReserveScenarioReward called: ID={__0}, Index={__1}");
+            MelonLogger.Msg( $"ReserveScenarioReward called: ID={__0}, Index={__1}");
 
             ScenarioRewards scenarioRewards = MasterDataBase<ScenarioRewards>.Get((int)__0);
 
-            MelonLogger.Msg($"Gave Item {scenarioRewards.mReward1st} x {scenarioRewards.mReward1stCount}");
+            if (Core.DEBUG) { MelonLogger.Msg($"Gave Item {scenarioRewards.mReward1st} x {scenarioRewards.mReward1stCount}"); }
+            
 
+            //Archipelago Handling
+            Core.pendingLocations.Enqueue((long)__0);
+            //Auto Save that after we get an item
+            FieldManager.Instance.CallReserveAutoSave();
 
-            //Secret Report Handling
-            AllItems allItems = MasterDataBase<AllItems>.Get((int)scenarioRewards.mReward1st);
-            if (allItems.mItemType == ItemConst.EItemType.Book)
-            {
-                Book book = UIUtility.GetBook(allItems);
-                if (book.IsSecretReport())
-                {
-                    Core.currentGameDay++;
-                }
-            }
         }
     }
 
@@ -56,14 +43,14 @@ namespace NEOTwewyArchipelagoMod
             else if (inFileName.ToString().Contains("ItemInfoDG"))
             {
                 MelonLogger.Msg("Modify Pin Descriptions");
-                __result["ITM_BDG_Name_0313"].Content = "A pin reminiscent of a multiword. Seems to have various effects... ";
+                __result["ITM_BDG_Name_0313"].Content = "A pin reminiscent of a multiworld. Seems to have various effects... ";
             }
 
         }
     }
 
     /*
-     * Get TextData from Assets 
+     * Get GameData from Assets 
      */
     [HarmonyPatch(typeof(MasterDataManager), "GetTextDataFromAssets")]
     public static class PatchGetTextDataFromAssets
@@ -73,30 +60,59 @@ namespace NEOTwewyArchipelagoMod
             // Inject ScenarioRewards
             if (assetName.Contains("ScenarioRewards"))
             {
-                MelonLogger.Msg("Injecting ScenarioRewards");
+                //MelonLogger.Msg("Injecting ScenarioRewards");
 
                 JObject root = JObject.Parse(__result);
 
                 JArray targets = (JArray)root["mTarget"];
 
-                targets.Add(new JObject
+                
+                MelonLogger.Msg($"Edit existing rewards");
+                //RewardID, ItemID
+                foreach (KeyValuePair<long, long> entry in ArchipelagoData.ScenarioRewardsDict)
                 {
-                    ["mId"] = 999999,
-                    ["mReward1st"] = 31000, //Secret Report 1
-                    ["mReward1stCount"] = 1,
-                    ["mReward2nd"] = -1,
-                    ["mReward2ndCount"] = 0,
-                    ["mSaveIndex"] = 251 // From the TestReward
-                });
-                targets.Add(new JObject
+                    long scenarioId = entry.Key;
+                    long itemId = entry.Value;
+
+                    JObject target = targets.OfType<JObject>()
+                        .FirstOrDefault(t => (long)t["mId"] == scenarioId);
+
+                    if (target != null)
+                    {
+                        //MelonLogger.Msg($"{scenarioId}");
+                        target["mReward1st"] = itemId;
+                    }
+                    else
+                    {
+                        //MelonLogger.Msg($"{scenarioId}");
+                        targets.Add(new JObject
+                        {
+                            ["mId"] = scenarioId,
+                            ["mReward1st"] = itemId,
+                            ["mReward1stCount"] = 1,
+                            ["mReward2nd"] = -1,
+                            ["mReward2ndCount"] = 0,
+                            ["mSaveIndex"] = 251
+                        });
+                    }
+                }
+
+                    
+                MelonLogger.Msg($"Add rewards to receive from Archipelago");
+                //itemID, RewardID
+                foreach (KeyValuePair<long, long> entry in ArchipelagoData.ReceivableRewards)
                 {
-                    ["mId"] = 9999999,
-                    ["mReward1st"] = 31001, //Secret Report 2
-                    ["mReward1stCount"] = 1,
-                    ["mReward2nd"] = -1,
-                    ["mReward2ndCount"] = 0,
-                    ["mSaveIndex"] = 251 // From the TestReward
-                });
+                    //MelonLogger.Msg($"{entry.Value}");
+                    targets.Add(new JObject
+                    {
+                        ["mId"] = entry.Value,
+                        ["mReward1st"] = entry.Key, //Secret Report 1
+                        ["mReward1stCount"] = 1,
+                        ["mReward2nd"] = -1,
+                        ["mReward2ndCount"] = 0,
+                        ["mSaveIndex"] = 251 // From the TestReward
+                    });
+                }
 
                 __result = root.ToString();
             }
@@ -126,22 +142,26 @@ namespace NEOTwewyArchipelagoMod
                 JObject root = JObject.Parse(__result);
                 JArray targets = (JArray)root["mTarget"];
 
-                MelonLogger.Msg("Set Enemy HP to 1");
-                for (int i = 0; i < targets.Count; i++)
+                if(Core.DEBUG)
                 {
-                    if (targets[i]["mId"] == null)
+                    MelonLogger.Msg("Set Enemy HP to 1");
+                    for (int i = 0; i < targets.Count; i++)
                     {
-                        MelonLogger.Msg($"Missing mID at index {i}");
-                        //MelonLogger.Msg(targets[i].ToString());
-                        continue;
-                    }
+                        if (targets[i]["mId"] == null)
+                        {
+                            MelonLogger.Msg($"Missing mID at index {i}");
+                            //MelonLogger.Msg(targets[i].ToString());
+                            continue;
+                        }
 
-                    if ((int)targets[i]["mId"] > 100)
-                    {
-                        targets[i]["mHp"] = 1;
-                        //MelonLogger.Msg(targets[i].ToString());
+                        if ((int)targets[i]["mId"] > 100)
+                        {
+                            targets[i]["mHp"] = 1;
+                            //MelonLogger.Msg(targets[i].ToString());
+                        }
                     }
                 }
+                
 
                 __result = root.ToString();
             }
@@ -244,7 +264,8 @@ namespace NEOTwewyArchipelagoMod
         public static void Prefix()
         {
             MelonLogger.Msg($"Finished day {SaveLoadController.Get<SaveDataField>().GetNewestDateDay()}");
-            SaveLoadController.Get<SaveDataField>().SetScenarioDateDay(Core.currentGameDay - 1);
+            //We set to furthestDayReached -1 because this method increases that by 1 naturally
+            SaveLoadController.Get<SaveDataField>().SetScenarioDateDay(Core.furthestDayReached - 1);
         }
 
         public static void Postfix()
@@ -261,20 +282,23 @@ namespace NEOTwewyArchipelagoMod
             //Triggered for Minamimoto Day 3
             //Did not trigger revisiting w2d7, but did trigger on normal visit
 
-            //TODO: I think this is what prevents this from happening on revisit: ScenarioJoinCharacter
-
             MelonLogger.Msg($"Member joined index {__0} and Label {__1}");
+            if(CustomEventData.memberToRewardID.TryGetValue(__1, out int rewardID))
+            {
+                //TODO: This technically should not queue but just alert server?, maybe manually add it to the list
+                Core.queueNonStandardReward(rewardID);
+            }
+
         }
     }
 
-    //SaveLoadController.Get<SaveDataField>().SetScenarioFlag(
     [HarmonyPatch(typeof(SaveDataField), "SetScenarioFlag")]
     public static class PatchSetScenarioFlag
     {
         public static void Prefix(int __0, bool __1)
         {
-            //Also patch this one SetScenarioFlagData
-            MelonLogger.Msg($"Set Scenario Flag {(Scenario.EName)__0} to {__1}");
+            if(Core.DEBUG) { MelonLogger.Msg($"Set Scenario Flag {(Scenario.EName)__0} to {__1}"); }
+            
 
             Core.CheckEndOfChapterReward((Scenario.EName)__0, __1);
         }
@@ -284,7 +308,7 @@ namespace NEOTwewyArchipelagoMod
     {
         public static void Prefix(int __0, bool __1)
         {
-            MelonLogger.Msg($"Set ScenarioFlagData index {__0} name {ScenarioFlagList.flagNamesFromSaveIndex[__0]} to {__1}");
+            if (Core.DEBUG) { MelonLogger.Msg($"Set ScenarioFlagData index {__0} name {ScenarioFlagList.flagNamesFromSaveIndex[__0]} to {__1}"); }
 
             Core.CheckEndOfChapterReward(ScenarioFlagList.flagNamesFromSaveIndex[__0], __1);
            
@@ -299,14 +323,30 @@ namespace NEOTwewyArchipelagoMod
             //Setting it to false doesn't do anything to minamimoto joining
             //This Method does not trigger when replaying w2d7
 
-            MelonLogger.Msg($"Prefix ScenarioJoinCharacter with playerID {__0} checkSystem {__1} and isNewestDateDay {__2}");
-            __2 = false;
+            if (Core.DEBUG) { MelonLogger.Msg($"Prefix ScenarioJoinCharacter with playerID {__0} checkSystem {__1} and isNewestDateDay {__2}")};
+            //__2 = false;
         }
 
         public static void Postfix(BattlePlayer.ELabel __0, bool __1, ref bool __2)
         {
 
-            MelonLogger.Msg($"Postfix ScenarioJoinCharacter with playerID {__0} checkSystem {__1} and isNewestDateDay {__2}");
+            if (Core.DEBUG)
+            {
+                MelonLogger.Msg($"Postfix ScenarioJoinCharacter with playerID {__0} checkSystem {__1} and isNewestDateDay {__2}");
+            }
+        }
+    }
+
+    [HarmonyPatch(typeof(ComicEventManager), "UpdateSkipFlag")]
+    public static class SkipFlagPatch
+    {
+        public static void Postfix(ComicEventManager __instance)
+        {
+            MelonLogger.Msg($"Before: {__instance.m_IsSkipExecutable}");
+            //Always make sure you can fastword in dialogue scenes
+            __instance.m_IsSkipExecutable = true;
+
+            MelonLogger.Msg($"After: {__instance.m_IsSkipExecutable}");
         }
     }
 

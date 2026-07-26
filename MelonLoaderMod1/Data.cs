@@ -9,6 +9,7 @@ namespace NEOTwewyArchipelagoMod
 {
     public static class ScenarioFlagList
     {
+        //Day, Array for ScenarioFlags needed to reach the end of day movie animation
         public static readonly Dictionary<int, Scenario.EName[]> flagsToBeatDay =
             new()
             {
@@ -165,6 +166,7 @@ namespace NEOTwewyArchipelagoMod
             }
             };
 
+        //SaveIndex where the flag value is stored, Respective ScenarioFlag
         public static readonly Dictionary<int, Scenario.EName> flagNamesFromSaveIndex =
             new()
             {
@@ -2015,12 +2017,23 @@ namespace NEOTwewyArchipelagoMod
                 {4607,Scenario.EName.MaxTestFlag},
             };
 
-        // Tuple is (day, customRewardId)
+        //ScenarioFlag that is at the very end of the day, Tuple is (day, customRewardId/locationID for the new reward)
         public static readonly Dictionary<Scenario.EName, (int, int)> endOfDayFlag =
             new()
             {
-                {Scenario.EName.story_w1d1_90_010_main,(1, 99999)},
-                {Scenario.EName.story_w1d2_90_010_main,(2, 99999+1)},
+                {Scenario.EName.story_w1d1_90_010_main,(1, 101)},
+                {Scenario.EName.story_w1d2_90_010_main,(2, 102)},
             };
+
+       
     }
-}
+    public static class CustomEventData
+    {
+        //Player charactera and which custmo reward they should trigger upon joining
+        public static readonly Dictionary<BattlePlayer.ELabel, int> memberToRewardID = new()
+        {
+            { BattlePlayer.ELabel.Minamimoto, 110010 }
+        };
+    }
+     
+    }

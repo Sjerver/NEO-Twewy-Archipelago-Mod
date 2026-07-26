@@ -3,13 +3,13 @@
 		<TargetFramework>net6.0</TargetFramework>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>disable</Nullable>
-		<RootNamespace>MelonLoaderMod1</RootNamespace>
+		<RootNamespace>NEOTwewyArchipelagoMod</RootNamespace>
 		<LangVersion>default</LangVersion>
 		<IsPackable>false</IsPackable>
 		<AssemblyVersion>1.0.0.0</AssemblyVersion>
 		<FileVersion>1.0.0.0</FileVersion>
 		<NeutralLanguage>en-US</NeutralLanguage>
-		<AssemblyName>MelonLoaderMod1</AssemblyName>
+		<AssemblyName>NEOTwewyArchipelagoMod</AssemblyName>
 		<LangVersion>latest</LangVersion>
 		<ImplicitUsings>enable</ImplicitUsings>
 	</PropertyGroup>
@@ -276,11 +276,24 @@
 	</PropertyGroup>
 
 	<ItemGroup>
+		<Compile Include="ArchipelagoClient.cs" />
+		<Compile Include="ArchipelagoData.cs" />
+		<Compile Include="Config.cs" />
 		<Compile Include="Data.cs" />
+		<Compile Include="ModSave.cs" />
 		<Compile Include="MyObjectClasses.cs" />
 		<Compile Include="HarmonyPatches.cs" />
 		<Compile Include="Core.cs" />
+		<Compile Include="NEOTwewyData.cs" />
 		<Content Include="Directory.Build.props" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <PackageReference Include="Archipelago.MultiClient.Net" Version="6.7.1" />
+	  <PackageReference Include="Archipelago.MultiClient.Net.Analyzers" Version="2.0.3">
+	    <PrivateAssets>all</PrivateAssets>
+	    <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+	  </PackageReference>
 	</ItemGroup>
 	
 	<Target Name="PostBuild" AfterTargets="PostBuildEvent">

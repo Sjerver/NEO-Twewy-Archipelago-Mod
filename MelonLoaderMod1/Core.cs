@@ -1,13 +1,8 @@
-﻿using Il2Cpp;
+﻿using Archipelago.MultiClient.Net.Models;
+using Il2Cpp;
 using Il2CppMaster;
 using MelonLoader;
-using System.ComponentModel.DataAnnotations;
-using System.Reflection;
 using UnityEngine;
-using static Il2CppCustomComponents.FixedSpriteParameterTable;
-using Il2CppInterop.Runtime.InteropTypes.Arrays;
-using Il2CppInterop.Runtime;
-using Il2CppUI.Report;
 
 [assembly: MelonInfo(typeof(NEOTwewyArchipelagoMod.Core), "NEOTwewyArchipelagoMod", "1.0.0", "sjerver", null)]
 [assembly: MelonGame("SQUARE ENIX", "NEO: The World Ends with You")]
@@ -16,66 +11,160 @@ namespace NEOTwewyArchipelagoMod
 {
     public class Core : MelonMod
     {
+        //Essentially static constants
+        public static string GAME_NAME = "NEO: The World Ends with You";
+        public static int ARCHIPELAGO_ITEM_ID = 5000;
+        public static bool DEBUG = false;
+
+        //For stuff we call one time once we reach the field scene
         public bool initalized = false;
         
-        public static bool activatedGameFunctions = false;
-        
-        public static Queue<int> rewardQueue = new Queue<int>();
+        //Lists of flags that should always have a certain value
+        public static List<Scenario.EName> alwaysOnFlags = new List<Scenario.EName>()
+        {
+            Scenario.EName.System_EnableMenu_Report_Chapter,
+            Scenario.EName.System_EnableMenu_Report_Noise,
+            Scenario.EName.System_EnableMenu_Analyze_Board,
+            Scenario.EName.System_EnableMenu_Analyze_Memo,
+            Scenario.EName.System_EnableMenu_Fashion,
+            Scenario.EName.System_EnableMenu_Badge,
+            Scenario.EName.System_EnableMusicSync, //QOL but could also arguably be locked
+        };
 
-        public static int currentGameDay = -1;
+        public static List<Scenario.EName> alwaysOffFlags = new List<Scenario.EName>() 
+        { 
+            Scenario.EName.System_Battle_DisableBadgeDrop 
+        };
 
-        public static List<int> daysBeaten = new List<int>();
-        
+
+        //Queue for Rewards that should be given to the player via ReserveScenarioReward()
+        public static Queue<QueuedReward> rewardQueue = new Queue<QueuedReward>();
+
+        //Local storage for current newest day in game
+        public static int furthestDayReached = -1;
+
+        //The actual client object
+        public static ArchipelagoClient client = new ArchipelagoClient();
+
+        //State for which "main" scene is currently loaded
+        private static bool inBattle = false;
+        private static bool inField = false;
+
+        //Whether we are connected to the server
+        private bool _connecting = false;
+        //Storage if the goal has been achieved
+        private static bool _goalAchieved = false;
+        //Locations checked in game that need to be send to the server once possible
+        public static Queue<long> pendingLocations = new();
+
+
         public override void OnInitializeMelon()
         {
+            Config.Load(); //Load config with hostname, port, slotname, and password
+            
+            client.AttemptConnectionSync(); 
+
+            //Loading local save data and assigning values based on it
+            ModSave.Load(client.session.RoomState.Seed);
+
+            _goalAchieved = ModSave.Data.goalAchieved;
+            while (ModSave.Data.pendingLocations.Count > 0)
+            {
+                pendingLocations.Enqueue(ModSave.Data.pendingLocations.Dequeue());
+            }
+
             LoggerInstance.Msg("Initialized.");
         }
 
-
         public override void OnUpdate()
         {
-            if (FieldManager.Instance.IsMoveStatus())
-            {
-                //MelonLogger.Msg("Player can move");
+            if (!client.IsConnected && !_connecting)
+            {//Reconnect to the client if we are no longer connected
+                _connecting = true;
+                _ = TryReconnect();
+            }
+            else if (!ArchipelagoData.DataLoaded)
+            { // if we are connected get location data from the server, to edit game data
+                ArchipelagoData.DataLoaded = true;
+                LoadArchipelagoData();
+            }
+            if (client.IsConnected && pendingLocations.Count > 0)
+            { //If we have locations we need to do send to the server
+                FlushPendingLocations();
+            }
+            if (client.IsConnected && _goalAchieved)
+            { //Inform the server that we reached our goal
+                client.session.SetGoalAchieved();
+            }
+
+            if (!inBattle && inField)
+            { //Only if the battle scene is not loaded and the field scene is loaded
 
                 
-                // Initialize Values on Load/Start Save
-                if(!initalized)
-                {
+                if (!initalized)
+                {//Initialize Values on Load/ Start Save
                     initalized = true;
 
-                    currentGameDay = SaveLoadController.Get<SaveDataField>().GetNewestDateDay();
-                    MelonLogger.Msg($"Current Newest Day is {currentGameDay}");
+                    furthestDayReached = SaveLoadController.Get<SaveDataField>().GetNewestDateDay();
+                    MelonLogger.Msg($"Current Newest Day is {furthestDayReached}");
                 }
 
-                // Activate Certain Game Functions
-                //TODO: Instead of running once change to dynamic code that activates these flags if they arent otherwise active
-                if (!activatedGameFunctions)
+
+                
+                
+                for(int i = 0; i < alwaysOnFlags.Count; i++)
                 {
-                    activatedGameFunctions = true;
-                    //Activates Drops
-                    SaveLoadController.Get<SaveDataField>().SetScenarioFlag(Scenario.EName.System_Battle_DisableBadgeDrop, false);
-
-                    //Activate Chapter Select + Noise Report + Social Network
-                    SaveLoadController.Get<SaveDataField>().SetScenarioFlag(Scenario.EName.System_EnableMenu_Report_Chapter, true);
-                    SaveLoadController.Get<SaveDataField>().SetScenarioFlag(Scenario.EName.System_EnableMenu_Report_Noise, true);
-                    SaveLoadController.Get<SaveDataField>().SetScenarioFlag(Scenario.EName.System_EnableMenu_Analyze_Board, true);
-                    SaveLoadController.Get<SaveDataField>().SetScenarioFlag(Scenario.EName.System_EnableMenu_Analyze_Memo, true);
-                    SaveLoadController.Get<SaveDataField>().SetScenarioFlag(Scenario.EName.System_EnableMenu_Fashion, true);
+                    Scenario.EName flag = alwaysOnFlags[i];
+                    bool currentValue = SaveLoadController.Get<SaveDataField>().GetScenarioFlag(flag);
+                    if(currentValue != true)
+                    {
+                        SaveLoadController.Get<SaveDataField>().SetScenarioFlag(flag, true);
+                        MelonLogger.Msg($"Set {flag} to {alwaysOnFlags[i]}");
+                    }
+                }
+                for (int i = 0; i < alwaysOffFlags.Count; i++)
+                {
+                    Scenario.EName flag = alwaysOffFlags[i];
+                    bool currentValue = SaveLoadController.Get<SaveDataField>().GetScenarioFlag(flag);
+                    if (currentValue != false)
+                    {
+                        SaveLoadController.Get<SaveDataField>().SetScenarioFlag(flag, false);
+                        MelonLogger.Msg($"Set {flag} to {alwaysOffFlags[i]}");
+                    }
                 }
 
 
-                // Run Reward Queue
-                while (rewardQueue.Count > 0) {
-                    int rewardToTrigger = rewardQueue.Dequeue();
+
+                while (client.pendingItems.Count > 0 && ArchipelagoData.DataLoaded)
+                { //If we are to receive items from the client, and have done the work to be able to receive them
+                    
+                    PendingItem receivedItem = client.pendingItems.Dequeue();
+                    MelonLogger.Msg($"Received Item: {receivedItem.Item.ItemId} at index {receivedItem.Index}");
+                    if (receivedItem.Item.LocationGame == GAME_NAME && receivedItem.Item.ItemId != ARCHIPELAGO_ITEM_ID)
+                    { continue; } // Do not receive items from our own game
+                    if (receivedItem.Index <= ModSave.Data.LastProcessedItemIndex)
+                    { // Only receive item with an index higher than the last item we received
+                        continue;
+                    }
+                    long rewardID = ArchipelagoData.ReceivableRewards[receivedItem.Item.ItemId];
+                    rewardQueue.Enqueue(new QueuedReward((int)rewardID, receivedItem.Index));
+                }
+
+                //Run Reward Queue
+                while (rewardQueue.Count > 0 && FieldManager.Instance.IsPromptStatus())
+                {//If rewards are queued and we can trigger a reward pop-up
+                    QueuedReward rewardToTrigger = rewardQueue.Dequeue();
                     MelonLogger.Msg(rewardToTrigger);
-                    FieldManager.Instance.ReserveScenarioReward((ScenarioRewards.ELabel)rewardToTrigger, 1);
+                    FieldManager.Instance.ReserveScenarioReward((ScenarioRewards.ELabel)rewardToTrigger.RewardID, 1);
+                    ModSave.Data.LastProcessedItemIndex = Math.Max(ModSave.Data.LastProcessedItemIndex, rewardToTrigger.ItemIndex);
+                    ModSave.Save();
                 }
-                
-                
             }
-            
-            if (Input.GetKeyDown(KeyCode.F8))
+
+           
+
+
+            if (DEBUG && Input.GetKeyDown(KeyCode.F8))
             {
                 MelonLogger.Msg("F8 pressed");
 
@@ -83,10 +172,10 @@ namespace NEOTwewyArchipelagoMod
                 // Triggers Firestorm D1 Reward
                 // Does not work in battles! So properly needs to be in a waiting list or something for archipelago
                 // Only Slot 1 Works??
-                rewardQueue.Enqueue((int)Il2CppMaster.ScenarioRewards.ELabel.Reward_1w1d_020);
+                rewardQueue.Enqueue(new QueuedReward((int)Il2CppMaster.ScenarioRewards.ELabel.Reward_1w1d_020,-1));
                 //FieldManager.Instance.ReserveScenarioReward(Il2CppMaster.ScenarioRewards.ELabel.Reward_1w1d_020, 1); //Firestorm
                 //FieldManager.Instance.ReserveScenarioReward(Il2CppMaster.ScenarioRewards.ELabel.Reward_1w1d_010, 1); //Joli Becot
-                rewardQueue.Enqueue((int)Il2CppMaster.ScenarioRewards.ELabel.Reward_Test_001);
+                rewardQueue.Enqueue(new QueuedReward((int)Il2CppMaster.ScenarioRewards.ELabel.Reward_Test_001,-1));
                 //FieldManager.Instance.ReserveScenarioReward(Il2CppMaster.ScenarioRewards.ELabel.Reward_Test_001, 1); // FP 3
 
 
@@ -120,36 +209,41 @@ namespace NEOTwewyArchipelagoMod
 
             }
 
-            if (Input.GetKeyDown(KeyCode.F5))
-            {
+            
+            if (Input.GetKeyDown(KeyCode.F5) && inField)
+            {//This is the button that can be pressed to skip to the end of a already beaten day
                 MelonLogger.Msg("F5 pressed");
 
-                //In combination with setting all flags for the day could work as a finish day thing!
-                //Check here if you have beat current day at least once!!!
-                int gameDay = SaveLoadController.Get<SaveDataField>().GetNewestDateDay();
-                if (daysBeaten.Contains(gameDay))
-                {
+                //Get clear location for the current game day
+                int gameDay = SaveLoadController.Get<SaveDataField>().GetScenarioDateDay();
+                int locationID = ScenarioFlagList.endOfDayFlag.FirstOrDefault(x => x.Value.Item1 == gameDay).Value.Item2;
+
+                var checkedLocations = client.session.Locations.AllLocationsChecked;
+                bool dayLocationReached = checkedLocations.Any(loc => loc == locationID);
+                if (dayLocationReached)
+                {//if we reached the clear location for a chapter/day
                     Scenario.EName[] flagList = ScenarioFlagList.flagsToBeatDay[gameDay];
                     for (int i = 0; i < flagList.Length; i++)
-                    {
+                    { // Set all flags for the day
                         SaveLoadController.Get<SaveDataField>().SetScenarioFlag(flagList[i], true);
                     }
-
-                    FieldManager.Instance.MainMenuToChapterSelect(currentGameDay);
-                } else
+                    //Go to the current newest day
+                    FieldManager.Instance.MainMenuToChapterSelect(furthestDayReached);
+                }
+                else
                 {
                     MelonLogger.Msg($"{gameDay} has not yeen beaten");
                 }
-                
+
 
             }
 
-            if (Input.GetKeyDown(KeyCode.F6))
+            if (DEBUG && Input.GetKeyDown(KeyCode.F6))
             {
                 MelonLogger.Msg("F6 pressed");
 
-                currentGameDay++;
-                MelonLogger.Msg(currentGameDay);
+                furthestDayReached++;
+                MelonLogger.Msg(furthestDayReached);
                 //SaveLoadController.Get<SaveDataField>().SetClearAnotherDay();
 
                 //var rewards = MasterDataBase<ScenarioRewards>.Array;
@@ -196,14 +290,155 @@ namespace NEOTwewyArchipelagoMod
             }
         }
 
-        public static void CheckEndOfChapterReward(Scenario.EName scenarioFlag, bool value)
+        public override void OnSceneWasLoaded(int buildIndex, string sceneName)
         {
+            base.OnSceneWasLoaded(buildIndex, sceneName);
+
+            try
+            { //Change the current scene states
+                MelonLogger.Msg($"Scene Load {sceneName} was loaded.");
+                if (sceneName == "Battle")
+                { inBattle = true; }
+                else if (sceneName == "Field")
+                { inField = true; }
+
+            } catch (Exception e){MelonLogger.Msg($"Scene Load {e}");}
+        }
+
+        public override void OnSceneWasUnloaded(int buildIndex, string sceneName)
+        {
+            base.OnSceneWasUnloaded(buildIndex, sceneName);
+            try
+            { //Change the current scene states
+                MelonLogger.Msg($"Scene Unload {sceneName} was unloaded.");
+                if (sceneName == "Battle")
+                { inBattle = false;}
+                else if (sceneName == "Field")
+                { inField = false;}
+            } catch (Exception e) {  MelonLogger.Msg($"Scene Unload {e}"); }
+        }
+
+        public override void OnApplicationQuit()
+        {
+            if (pendingLocations.Count > 0)
+            { //Before closing the game and we might need to store some information that could not be sent to server
+                foreach (var location in pendingLocations)
+                {
+                    if (!ModSave.Data.pendingLocations.Contains(location))
+                        ModSave.Data.pendingLocations.Enqueue(location);
+                }
+            }
+            ModSave.Data.goalAchieved = _goalAchieved;
+            ModSave.Save();
+
+        }
+
+        public static void CheckEndOfChapterReward(Scenario.EName scenarioFlag, bool value)
+        { //Based on certain scenarioFlags trigger the respective end of day location
             if (ScenarioFlagList.endOfDayFlag.ContainsKey(scenarioFlag) && value == true)
             {
                 var (day, rewardID) = ScenarioFlagList.endOfDayFlag[scenarioFlag];
-                Core.rewardQueue.Enqueue(rewardID);
-                daysBeaten.Add(day);
+                Core.queueNonStandardReward(rewardID);
+
+                var gameDay = SaveLoadController.Get<SaveDataField>().GetNewestDateDay();
+                int collectedSecretReports = CountSecretReports();
+                MelonLogger.Msg($"End Day {gameDay} with {collectedSecretReports} Reports and furthest day {furthestDayReached}");
+                if(gameDay <= collectedSecretReports && gameDay == furthestDayReached)
+                {
+                    furthestDayReached++;
+                }
+                if (furthestDayReached == 3) { _goalAchieved = true; }
             }
+        }
+
+        public static int CountSecretReports()
+        { // Count the currently collected secret reports
+            int count = 0;
+            SaveDataRecord record = SaveLoadController.Get<SaveDataRecord>();
+            if (record == null)
+                return 0;
+            foreach (Book book in MasterDataBase<Book>.Array)
+            {
+                if (book != null && book.IsSecretReport())
+                {
+                    if (record.IsGetItem(book.mItemId))
+                    {
+                        count++;
+                    }
+                }
+            }
+            return count;
+        }
+
+        private async void LoadArchipelagoData()
+        {//Get Locations in our game and what items are in them
+            long[] locations = client.session.Locations.AllLocations.ToArray();
+
+            MelonLogger.Msg($"Requesting {locations.Length} locations");
+
+            Dictionary<long, ScoutedItemInfo> items =
+                await client.session.Locations.ScoutLocationsAsync(false, locations);
+
+            MelonLogger.Msg($"Received {items.Count} locations");
+
+            ArchipelagoData.LoadArchipelagoLocations(items);
+        }
+
+        public static void queueNonStandardReward(int rewardID)
+        {//Queue a reward that can't be normally saved by the game
+            bool nonStandardInSaveFile = ModSave.Data.nonStandardLocations.Contains((long)rewardID);
+            bool nonStandardChecked = client.session.Locations.AllLocationsChecked.Contains((long)rewardID);
+
+
+            if (!nonStandardInSaveFile)
+            {// If the location has not been recorded in local mod save file
+                Core.rewardQueue.Enqueue(new QueuedReward(rewardID, -1));
+                ModSave.Data.nonStandardLocations.Add(rewardID);
+            } else if (nonStandardInSaveFile && !nonStandardChecked)
+            {//If the location is in local mod save file but not checked in archipelago
+                pendingLocations.Enqueue((long)rewardID);
+            }
+        }
+
+        private async Task TryReconnect()
+        { //Try to Reconnect to the server asynchronously
+            try
+            {
+                await client.AttemptConnectionAsync();
+            }
+            catch (Exception e)
+            {
+                MelonLogger.Error(e);
+            }
+            finally
+            {
+                _connecting = false;
+            }
+        }
+
+        private static void FlushPendingLocations()
+        {//Send locations checked in game to the server
+
+            Core.client.session.Locations.CompleteLocationChecks(
+                pendingLocations.ToArray());
+
+            pendingLocations.Clear();
+        }
+    }
+
+    public class QueuedReward
+    {//This class is used for rewards received from the server
+        public int RewardID { get; set; }
+        public long ItemIndex { get; set; }
+        public QueuedReward(int rewardID, long itemIndex)
+        {
+            RewardID = rewardID;
+            ItemIndex = itemIndex;
+        }
+
+        public override string ToString()
+        {
+            return RewardID.ToString();
         }
     }
 }
