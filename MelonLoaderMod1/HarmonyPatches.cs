@@ -323,7 +323,7 @@ namespace NEOTwewyArchipelagoMod
             //Setting it to false doesn't do anything to minamimoto joining
             //This Method does not trigger when replaying w2d7
 
-            if (Core.DEBUG) { MelonLogger.Msg($"Prefix ScenarioJoinCharacter with playerID {__0} checkSystem {__1} and isNewestDateDay {__2}")};
+            if (Core.DEBUG) { MelonLogger.Msg($"Prefix ScenarioJoinCharacter with playerID {__0} checkSystem {__1} and isNewestDateDay {__2}"); };
             //__2 = false;
         }
 
