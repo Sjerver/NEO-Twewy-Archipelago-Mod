@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using UnityEngine;
 
 namespace NEOTwewyArchipelagoMod
 {
@@ -22,8 +23,9 @@ namespace NEOTwewyArchipelagoMod
             if (File.Exists(SavePath))
             {
                 string json = File.ReadAllText(SavePath);
-                MelonLogger.Msg($"{json}");
+                //MelonLogger.Msg($"{json}");
                 Data = JsonConvert.DeserializeObject<ConfigData>(json);
+                Save();
             }
             else
             {
@@ -31,6 +33,15 @@ namespace NEOTwewyArchipelagoMod
                 Save();
                 MelonLogger.Msg("Created config file from scratch. Please edit the config.file before restarting the game.");
 
+            }
+
+            bool validKey = Enum.TryParse<KeyCode>(Config.Data.skipDayButton, out var key);
+            if (validKey)
+            {
+                Core.SKIP_DAY_BUTTON = key;
+            } else
+            {
+                MelonLogger.Warning($"Invalid skipDayButton '{Data.skipDayButton}', using F5.");
             }
         }
 
@@ -47,6 +58,8 @@ namespace NEOTwewyArchipelagoMod
         public int port = 38281;
         public string slotName = "";
         public string password = "";
+
+        public string skipDayButton = "F5";
     }
 
 }

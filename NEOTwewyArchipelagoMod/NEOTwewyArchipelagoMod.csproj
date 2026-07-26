@@ -69,9 +69,6 @@
 		<Reference Include="Il2CppZString">
 			<HintPath>$(GamePath)/MelonLoader\Il2CppAssemblies\Il2CppZString.dll</HintPath>
 		</Reference>
-		<Reference Include="Newtonsoft.Json">
-		  <HintPath>..\..\..\..\smtVV-rando\base\Newtonsoft.Json.dll</HintPath>
-		</Reference>
 		<Reference Include="Unity.TextMeshPro">
 			<HintPath>$(GamePath)/MelonLoader\Il2CppAssemblies\Unity.TextMeshPro.dll</HintPath>
 		</Reference>
@@ -294,6 +291,7 @@
 	    <PrivateAssets>all</PrivateAssets>
 	    <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 	  </PackageReference>
+	  <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
 	</ItemGroup>
 	
 	<Target Name="PostBuild" AfterTargets="PostBuildEvent">

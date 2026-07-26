@@ -16,6 +16,8 @@ namespace NEOTwewyArchipelagoMod
         public static int ARCHIPELAGO_ITEM_ID = 5000;
         public static bool DEBUG = false;
 
+        public static KeyCode SKIP_DAY_BUTTON = KeyCode.F5;
+
         //For stuff we call one time once we reach the field scene
         public bool initalized = false;
         
@@ -210,7 +212,7 @@ namespace NEOTwewyArchipelagoMod
             }
 
             
-            if (Input.GetKeyDown(KeyCode.F5) && inField)
+            if (Input.GetKeyDown(SKIP_DAY_BUTTON) && inField)
             {//This is the button that can be pressed to skip to the end of a already beaten day
                 MelonLogger.Msg("F5 pressed");
 
