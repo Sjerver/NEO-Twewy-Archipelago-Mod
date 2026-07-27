@@ -1,4 +1,5 @@
-﻿using Il2CppMaster;
+﻿using Il2Cpp;
+using Il2CppMaster;
 using System;
 using System.Collections.Generic;
 using System.Linq;

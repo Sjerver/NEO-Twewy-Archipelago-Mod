@@ -5,6 +5,9 @@ namespace NEOTwewyArchipelagoMod
 {
     public class ArchipelagoData
     {
+        public static long archiReceiveIDStart = 1000005;
+        public static long archiReceiveID = 1000005;
+
         public static bool DataLoaded { get; set; } = false;
         
         //RewardID, ItemID
@@ -28,13 +31,11 @@ namespace NEOTwewyArchipelagoMod
                 }
                         
             }
-
-            LoadStaticLocations();
         }
 
         public static void LoadStaticLocations()
         {
-            var archiReceiveID = 1000005;
+            
             foreach(KeyValuePair<string, NEOTwewyItemData> entry in NEOTwewyDataManager.item_data)
             {//Assemble a dictionary for all items we should be able to receive from archipelago
                 ReceivableRewards.Add(entry.Value.id, archiReceiveID);

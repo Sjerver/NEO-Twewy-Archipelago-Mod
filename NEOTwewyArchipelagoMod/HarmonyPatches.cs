@@ -3,9 +3,11 @@ using Il2Cpp;
 using Il2CppComicEvent;
 using Il2CppMaster;
 using Il2CppScenario;
+using Il2CppSteamworks;
 using Il2CppUI.Utility;
 using MelonLoader;
 using Newtonsoft.Json.Linq;
+using UnityEngine;
 
 
 namespace NEOTwewyArchipelagoMod
@@ -13,6 +15,23 @@ namespace NEOTwewyArchipelagoMod
     [HarmonyPatch(typeof(FieldManager), "ReserveScenarioReward")]
     public static class PatchReserveScenarioReward
     {
+        public static bool Prefix(ScenarioRewards.ELabel __0, int __1)
+        {
+            //This currently allows us to regain items which we may need to adjust
+            //Likely save our items in the mod save file
+            if ((long) __0 <ArchipelagoData.archiReceiveIDStart)
+            {//The server needs to be alerted about the location
+                if (Core.DEBUG) { MelonLogger.Msg($"Queue location {__0} to send to server"); }
+                //Tell the server we got the location
+                Core.pendingLocations.Enqueue((long)__0);
+
+                return false; //Don't call actual method to give the actual reward
+            }
+
+            return true; //Item received from server so give it normally!
+        }
+
+
         public static void Postfix(ScenarioRewards.ELabel __0,int __1)
         {
             //MelonLogger.Msg( $"ReserveScenarioReward called: ID={__0}, Index={__1}");
@@ -21,9 +40,6 @@ namespace NEOTwewyArchipelagoMod
 
             if (Core.DEBUG) { MelonLogger.Msg($"Gave Item {scenarioRewards.mReward1st} x {scenarioRewards.mReward1stCount}"); }
             
-
-            //Archipelago Handling
-            Core.pendingLocations.Enqueue((long)__0);
             //Auto Save that after we get an item
             FieldManager.Instance.CallReserveAutoSave();
 
@@ -43,7 +59,7 @@ namespace NEOTwewyArchipelagoMod
             else if (inFileName.ToString().Contains("ItemInfoDG"))
             {
                 MelonLogger.Msg("Modify Pin Descriptions");
-                __result["ITM_BDG_Name_0313"].Content = "A pin reminiscent of a multiworld. Seems to have various effects... ";
+                __result["ITM_BDG_Info_0313"].Content = "A pin reminiscent of a multiworld. Seems to have various effects... ";
             }
 
         }
@@ -67,35 +83,35 @@ namespace NEOTwewyArchipelagoMod
                 JArray targets = (JArray)root["mTarget"];
 
                 
-                MelonLogger.Msg($"Edit existing rewards");
-                //RewardID, ItemID
-                foreach (KeyValuePair<long, long> entry in ArchipelagoData.ScenarioRewardsDict)
-                {
-                    long scenarioId = entry.Key;
-                    long itemId = entry.Value;
+                //MelonLogger.Msg($"Edit existing rewards");
+                ////RewardID, ItemID
+                //foreach (KeyValuePair<long, long> entry in ArchipelagoData.ScenarioRewardsDict)
+                //{
+                //    long scenarioId = entry.Key;
+                //    long itemId = entry.Value;
 
-                    JObject target = targets.OfType<JObject>()
-                        .FirstOrDefault(t => (long)t["mId"] == scenarioId);
+                //    JObject target = targets.OfType<JObject>()
+                //        .FirstOrDefault(t => (long)t["mId"] == scenarioId);
 
-                    if (target != null)
-                    {
-                        //MelonLogger.Msg($"{scenarioId}");
-                        target["mReward1st"] = itemId;
-                    }
-                    else
-                    {
-                        //MelonLogger.Msg($"{scenarioId}");
-                        targets.Add(new JObject
-                        {
-                            ["mId"] = scenarioId,
-                            ["mReward1st"] = itemId,
-                            ["mReward1stCount"] = 1,
-                            ["mReward2nd"] = -1,
-                            ["mReward2ndCount"] = 0,
-                            ["mSaveIndex"] = 251
-                        });
-                    }
-                }
+                //    if (target != null)
+                //    {
+                //        //MelonLogger.Msg($"{scenarioId}");
+                //        target["mReward1st"] = itemId;
+                //    }
+                //    else
+                //    {
+                //        //MelonLogger.Msg($"{scenarioId}");
+                //        targets.Add(new JObject
+                //        {
+                //            ["mId"] = scenarioId,
+                //            ["mReward1st"] = itemId,
+                //            ["mReward1stCount"] = 1,
+                //            ["mReward2nd"] = -1,
+                //            ["mReward2ndCount"] = 0,
+                //            ["mSaveIndex"] = 251
+                //        });
+                //    }
+                //}
 
                     
                 MelonLogger.Msg($"Add rewards to receive from Archipelago");
@@ -264,13 +280,22 @@ namespace NEOTwewyArchipelagoMod
         public static void Prefix()
         {
             MelonLogger.Msg($"Finished day {SaveLoadController.Get<SaveDataField>().GetNewestDateDay()}");
-            //We set to furthestDayReached -1 because this method increases that by 1 naturally
-            SaveLoadController.Get<SaveDataField>().SetScenarioDateDay(Core.furthestDayReached - 1);
+            if(Core.furthestDayReached > 0)
+            {
+                //We set to furthestDayReached -1 because this method increases that by 1 naturally
+                SaveLoadController.Get<SaveDataField>().SetScenarioDateDay(Core.furthestDayReached - 1);
+            }
+
+            
         }
 
         public static void Postfix()
         {
             MelonLogger.Msg($"Start day {SaveLoadController.Get<SaveDataField>().GetNewestDateDay()}");
+            if(Core.furthestDayReached == 0 && SaveLoadController.Get<SaveDataField>().GetNewestDateDay() == 1)
+            {
+                Core.furthestDayReached++;
+            }
         }
     }
 
@@ -282,10 +307,10 @@ namespace NEOTwewyArchipelagoMod
             //Triggered for Minamimoto Day 3
             //Did not trigger revisiting w2d7, but did trigger on normal visit
 
-            MelonLogger.Msg($"Member joined index {__0} and Label {__1}");
+            //MelonLogger.Msg($"Member joined index {__0} and Label {__1}");
             if(CustomEventData.memberToRewardID.TryGetValue(__1, out int rewardID))
             {
-                //TODO: This technically should not queue but just alert server?, maybe manually add it to the list
+                //                                TODO: This technically should not queue but just alert server?, maybe manually add it to the list
                 Core.queueNonStandardReward(rewardID);
             }
 
@@ -298,7 +323,6 @@ namespace NEOTwewyArchipelagoMod
         public static void Prefix(int __0, bool __1)
         {
             if(Core.DEBUG) { MelonLogger.Msg($"Set Scenario Flag {(Scenario.EName)__0} to {__1}"); }
-            
 
             Core.CheckEndOfChapterReward((Scenario.EName)__0, __1);
         }
@@ -322,7 +346,6 @@ namespace NEOTwewyArchipelagoMod
         {
             //Setting it to false doesn't do anything to minamimoto joining
             //This Method does not trigger when replaying w2d7
-
             if (Core.DEBUG) { MelonLogger.Msg($"Prefix ScenarioJoinCharacter with playerID {__0} checkSystem {__1} and isNewestDateDay {__2}"); };
             //__2 = false;
         }
@@ -347,6 +370,16 @@ namespace NEOTwewyArchipelagoMod
             __instance.m_IsSkipExecutable = true;
 
             //MelonLogger.Msg($"After: {__instance.m_IsSkipExecutable}");
+        }
+    }
+
+    [HarmonyPatch(typeof(ScenarioMovieManager), nameof(ScenarioMovieManager.PlayMovie))]
+    public static class ScenarioMovieManagerPlayMoviePatch
+    {
+        public static void Prefix(ref bool inEnableSkip)
+        {
+            //MelonLogger.Msg("Movie starting, forcing skip enabled.");
+            inEnableSkip = true;
         }
     }
 

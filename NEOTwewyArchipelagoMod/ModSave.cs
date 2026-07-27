@@ -22,7 +22,7 @@ namespace NEOTwewyArchipelagoMod
                 string json = File.ReadAllText(SavePath);
                 Data = JsonConvert.DeserializeObject<ModSaveData>(json);
 
-                if(seed != Data.Seed)
+                if (seed != Data.Seed)
                 {
                     Data = new ModSaveData();
                     Data.Seed = seed;
@@ -56,6 +56,9 @@ namespace NEOTwewyArchipelagoMod
         //Remember locations checked that we could not tell the server about
         public bool goalAchieved { get; set; } = false;
         //Remember we achieved or goal in case we could not tell the server as such
+
+        public Queue<QueuedReward> rewardQueue { get; set; } = new Queue<QueuedReward>();
+        //Remember what is currently in the reward queue when the game closed
 
     }
 }

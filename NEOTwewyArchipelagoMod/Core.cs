@@ -29,7 +29,7 @@ namespace NEOTwewyArchipelagoMod
             Scenario.EName.System_EnableMenu_Analyze_Board,
             Scenario.EName.System_EnableMenu_Analyze_Memo,
             Scenario.EName.System_EnableMenu_Fashion,
-            Scenario.EName.System_EnableMenu_Badge,
+            Scenario.EName.System_EnableMenu_Badge, //Can't be true unless Rindo is initalized
             Scenario.EName.System_EnableMusicSync, //QOL but could also arguably be locked
         };
 
@@ -52,28 +52,46 @@ namespace NEOTwewyArchipelagoMod
         private static bool inBattle = false;
         private static bool inField = false;
 
-        //Whether we are connected to the server
+        //Whether we are connecting to the server already
         private bool _connecting = false;
         //Storage if the goal has been achieved
         private static bool _goalAchieved = false;
         //Locations checked in game that need to be send to the server once possible
         public static Queue<long> pendingLocations = new();
+        //
+        public static string seed = string.Empty;
 
 
         public override void OnInitializeMelon()
         {
             Config.Load(); //Load config with hostname, port, slotname, and password
-            
-            client.AttemptConnectionSync(); 
+
+
+            if (!client.AttemptConnectionSync())
+            {
+                MelonLogger.Error("Failed to connect to the Archipelago server.");
+                MelonLogger.Error("Please check your configuration and restart the game.");
+
+                Application.Quit();
+                return;
+            }
+
 
             //Loading local save data and assigning values based on it
-            ModSave.Load(client.session.RoomState.Seed);
+            seed = client.session.RoomState.Seed;
+            ModSave.Load(seed);
 
             _goalAchieved = ModSave.Data.goalAchieved;
             while (ModSave.Data.pendingLocations.Count > 0)
             {
                 pendingLocations.Enqueue(ModSave.Data.pendingLocations.Dequeue());
             }
+            while (ModSave.Data.rewardQueue.Count > 0)
+            {
+                rewardQueue.Enqueue(ModSave.Data.rewardQueue.Dequeue());
+            }
+
+            ArchipelagoData.LoadStaticLocations();
 
             LoggerInstance.Msg("Initialized.");
         }
@@ -85,7 +103,7 @@ namespace NEOTwewyArchipelagoMod
                 _connecting = true;
                 _ = TryReconnect();
             }
-            else if (!ArchipelagoData.DataLoaded)
+            if (client.IsConnected && !ArchipelagoData.DataLoaded)
             { // if we are connected get location data from the server, to edit game data
                 ArchipelagoData.DataLoaded = true;
                 LoadArchipelagoData();
@@ -102,7 +120,7 @@ namespace NEOTwewyArchipelagoMod
             if (!inBattle && inField)
             { //Only if the battle scene is not loaded and the field scene is loaded
 
-                
+
                 if (!initalized)
                 {//Initialize Values on Load/ Start Save
                     initalized = true;
@@ -111,39 +129,39 @@ namespace NEOTwewyArchipelagoMod
                     MelonLogger.Msg($"Current Newest Day is {furthestDayReached}");
                 }
 
-
-                
-                
-                for(int i = 0; i < alwaysOnFlags.Count; i++)
+                if (SaveLoadController.Get<SaveDataField>().GetTipsFlag(Tips.ELabel.Tips_0003))
                 {
-                    Scenario.EName flag = alwaysOnFlags[i];
-                    bool currentValue = SaveLoadController.Get<SaveDataField>().GetScenarioFlag(flag);
-                    if(currentValue != true)
+                    for (int i = 0; i < alwaysOnFlags.Count; i++)
                     {
-                        SaveLoadController.Get<SaveDataField>().SetScenarioFlag(flag, true);
-                        //MelonLogger.Msg($"Set {flag} to true");
+                        Scenario.EName flag = alwaysOnFlags[i];
+                        bool currentValue = SaveLoadController.Get<SaveDataField>().GetScenarioFlag(flag);
+                        if (currentValue != true)
+                        {
+                            SaveLoadController.Get<SaveDataField>().SetScenarioFlag(flag, true);
+                            //MelonLogger.Msg($"Set {flag} to true");
+                        }
+                    }
+                    for (int i = 0; i < alwaysOffFlags.Count; i++)
+                    {
+                        Scenario.EName flag = alwaysOffFlags[i];
+                        bool currentValue = SaveLoadController.Get<SaveDataField>().GetScenarioFlag(flag);
+                        if (currentValue != false)
+                        {
+                            SaveLoadController.Get<SaveDataField>().SetScenarioFlag(flag, false);
+                            //MelonLogger.Msg($"Set {flag} to false");
+                        }
                     }
                 }
-                for (int i = 0; i < alwaysOffFlags.Count; i++)
-                {
-                    Scenario.EName flag = alwaysOffFlags[i];
-                    bool currentValue = SaveLoadController.Get<SaveDataField>().GetScenarioFlag(flag);
-                    if (currentValue != false)
-                    {
-                        SaveLoadController.Get<SaveDataField>().SetScenarioFlag(flag, false);
-                        //MelonLogger.Msg($"Set {flag} to false");
-                    }
-                }
+            
+                
 
 
-
-                while (client.pendingItems.Count > 0 && ArchipelagoData.DataLoaded)
+                //TODO: Move this out of field only
+                while (client.pendingItems.Count > 0)
                 { //If we are to receive items from the client, and have done the work to be able to receive them
                     
                     PendingItem receivedItem = client.pendingItems.Dequeue();
-                    MelonLogger.Msg($"Received Item: {receivedItem.Item.ItemId} at index {receivedItem.Index}");
-                    if (receivedItem.Item.LocationGame == GAME_NAME && receivedItem.Item.ItemId != ARCHIPELAGO_ITEM_ID)
-                    { continue; } // Do not receive items from our own game
+                    //MelonLogger.Msg($"Received Item: {receivedItem.Item.ItemName} at index {receivedItem.Index}");
                     if (receivedItem.Index <= ModSave.Data.LastProcessedItemIndex)
                     { // Only receive item with an index higher than the last item we received
                         continue;
@@ -156,7 +174,7 @@ namespace NEOTwewyArchipelagoMod
                 while (rewardQueue.Count > 0 && FieldManager.Instance.IsPromptStatus())
                 {//If rewards are queued and we can trigger a reward pop-up
                     QueuedReward rewardToTrigger = rewardQueue.Dequeue();
-                    MelonLogger.Msg(rewardToTrigger);
+                    //MelonLogger.Msg(rewardToTrigger);
                     FieldManager.Instance.ReserveScenarioReward((ScenarioRewards.ELabel)rewardToTrigger.RewardID, 1);
                     ModSave.Data.LastProcessedItemIndex = Math.Max(ModSave.Data.LastProcessedItemIndex, rewardToTrigger.ItemIndex);
                     ModSave.Save();
@@ -330,6 +348,14 @@ namespace NEOTwewyArchipelagoMod
                         ModSave.Data.pendingLocations.Enqueue(location);
                 }
             }
+            if(rewardQueue.Count > 0)
+            {
+                foreach(var reward in rewardQueue)
+                {
+                    if (!ModSave.Data.rewardQueue.Contains(reward))
+                        ModSave.Data.rewardQueue.Enqueue(reward);
+                }
+            }
             ModSave.Data.goalAchieved = _goalAchieved;
             ModSave.Save();
 
@@ -421,8 +447,11 @@ namespace NEOTwewyArchipelagoMod
         private static void FlushPendingLocations()
         {//Send locations checked in game to the server
 
-            Core.client.session.Locations.CompleteLocationChecks(
-                pendingLocations.ToArray());
+            while (pendingLocations.Count > 0)
+            {
+                Core.client.session.Locations.CompleteLocationChecks([pendingLocations.Dequeue()]);
+            }
+
 
             pendingLocations.Clear();
         }

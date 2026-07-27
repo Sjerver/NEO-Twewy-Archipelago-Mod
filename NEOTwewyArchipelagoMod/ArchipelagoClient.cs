@@ -23,7 +23,7 @@ namespace NEOTwewyArchipelagoMod
         //Queue of items the client received from the server
         public Queue<PendingItem> pendingItems = new();
 
-        public void AttemptConnectionSync()
+        public bool AttemptConnectionSync()
         { //Attempt to connect synchronously at boot
             try
             {
@@ -31,11 +31,12 @@ namespace NEOTwewyArchipelagoMod
             } catch (Exception e)
             {
                 MelonLogger.Msg($"Failed to create session: {e.GetBaseException().Message}");
-                return; // Did not connect, show the user the contents of `errorMessage`
+                return false; // Did not connect, show the user the contents of `errorMessage`
             }
             SetupSubscriptions();
 
             Connect($"{Config.Data.hostName}:{Config.Data.port}", $"{Config.Data.slotName}", $"{Config.Data.password}");
+            return IsConnected;
         }
 
         public async Task AttemptConnectionAsync()
