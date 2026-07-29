@@ -727,7 +727,7 @@ namespace NEOTwewyArchipelagoMod
         {"Social Network Skills", new NEOTwewyItemData(31241,31241)},
         {"Side Quests", new NEOTwewyItemData(31242,31242)},
         {"Chapter Select", new NEOTwewyItemData(31243,31243)},
-
+        {"5 FP", new NEOTwewyItemData(33001,30000,5)},
         };
     }
 

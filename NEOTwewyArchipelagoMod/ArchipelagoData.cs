@@ -20,7 +20,7 @@ namespace NEOTwewyArchipelagoMod
             foreach (KeyValuePair<string, NEOTwewyItemData> entry in NEOTwewyDataManager.item_data)
             {//Assemble a dictionary for all items we should be able to receive from archipelago
                 entry.Value.reward_ID = (int)archiReceiveID;
-                ReceivableRewards.Add(entry.Value.id, entry.Value);
+                ReceivableRewards.Add(entry.Value.arch_id, entry.Value);
                 archiReceiveID++;
             }
 

@@ -342,7 +342,7 @@ namespace NEOTwewyArchipelagoMod
                 {
                     furthestDayReached++;
                 }
-                if (furthestDayReached == 3) { save.setGoalAchieved(true); }
+                if (furthestDayReached == 5) { save.setGoalAchieved(true); }
             }
         }
 

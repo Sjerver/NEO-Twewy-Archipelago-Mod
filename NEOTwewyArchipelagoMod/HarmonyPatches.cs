@@ -28,9 +28,12 @@ namespace NEOTwewyArchipelagoMod
                 Core.save.addCheckedLocation((long)__0);
 
                 return false; //Don't call actual method to give the actual reward
+            } else if (Core.save.getCheckedLocations().Contains((long)__0))
+            { // Location got already checked once
+                return false;
             }
 
-             return true; //Item received from server so give it normally!
+                return true; //Item received from server so give it normally!
         }
 
 
@@ -124,7 +127,7 @@ namespace NEOTwewyArchipelagoMod
                     targets.Add(new JObject
                     {
                         ["mId"] = entry.Value.reward_ID,
-                        ["mReward1st"] = entry.Key, //Secret Report 1
+                        ["mReward1st"] = entry.Value.id, //Secret Report 1
                         ["mReward1stCount"] = entry.Value.count,
                         ["mReward2nd"] = -1,
                         ["mReward2ndCount"] = 0,
