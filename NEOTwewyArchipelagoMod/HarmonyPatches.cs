@@ -4,6 +4,7 @@ using Il2CppComicEvent;
 using Il2CppMaster;
 using Il2CppScenario;
 using Il2CppSteamworks;
+using Il2CppUI.Title;
 using Il2CppUI.Utility;
 using MelonLoader;
 using Newtonsoft.Json.Linq;
@@ -19,16 +20,17 @@ namespace NEOTwewyArchipelagoMod
         {
             //This currently allows us to regain items which we may need to adjust
             //Likely save our items in the mod save file
-            if ((long) __0 <ArchipelagoData.archiReceiveIDStart)
+            if ((long) __0 <ArchipelagoData.archiReceiveIDStart && !Core.save.getCheckedLocations().Contains((long)__0))
             {//The server needs to be alerted about the location
                 if (Core.DEBUG) { MelonLogger.Msg($"Queue location {__0} to send to server"); }
                 //Tell the server we got the location
-                Core.pendingLocations.Enqueue((long)__0);
+                Core.save.enqueueLocation((long)__0);
+                Core.save.addCheckedLocation((long)__0);
 
                 return false; //Don't call actual method to give the actual reward
             }
 
-            return true; //Item received from server so give it normally!
+             return true; //Item received from server so give it normally!
         }
 
 
@@ -116,14 +118,14 @@ namespace NEOTwewyArchipelagoMod
                     
                 MelonLogger.Msg($"Add rewards to receive from Archipelago");
                 //itemID, RewardID
-                foreach (KeyValuePair<long, long> entry in ArchipelagoData.ReceivableRewards)
+                foreach (KeyValuePair<long, NEOTwewyItemData> entry in ArchipelagoData.ReceivableRewards)
                 {
                     //MelonLogger.Msg($"{entry.Value}");
                     targets.Add(new JObject
                     {
-                        ["mId"] = entry.Value,
+                        ["mId"] = entry.Value.reward_ID,
                         ["mReward1st"] = entry.Key, //Secret Report 1
-                        ["mReward1stCount"] = 1,
+                        ["mReward1stCount"] = entry.Value.count,
                         ["mReward2nd"] = -1,
                         ["mReward2ndCount"] = 0,
                         ["mSaveIndex"] = 251 // From the TestReward
@@ -310,8 +312,7 @@ namespace NEOTwewyArchipelagoMod
             //MelonLogger.Msg($"Member joined index {__0} and Label {__1}");
             if(CustomEventData.memberToRewardID.TryGetValue(__1, out int rewardID))
             {
-                //                                TODO: This technically should not queue but just alert server?, maybe manually add it to the list
-                Core.queueNonStandardReward(rewardID);
+                Core.queueCustomLocation(rewardID);
             }
 
         }
@@ -361,7 +362,7 @@ namespace NEOTwewyArchipelagoMod
     }
 
     [HarmonyPatch(typeof(ComicEventManager), "UpdateSkipFlag")]
-    public static class SkipFlagPatch
+    public static class PatchSkipFlag
     {
         public static void Postfix(ComicEventManager __instance)
         {
@@ -374,12 +375,45 @@ namespace NEOTwewyArchipelagoMod
     }
 
     [HarmonyPatch(typeof(ScenarioMovieManager), nameof(ScenarioMovieManager.PlayMovie))]
-    public static class ScenarioMovieManagerPlayMoviePatch
+    public static class PatchScenarioMovieManagerPlayMovie
     {
         public static void Prefix(ref bool inEnableSkip)
         {
             //MelonLogger.Msg("Movie starting, forcing skip enabled.");
             inEnableSkip = true;
+        }
+    }
+
+    [HarmonyPatch(typeof(TitleUI), nameof(TitleUI.OnDecide))]
+    public static class PatchOnDecide
+    {
+        public static bool Prefix(Vector2Int index)
+        {
+            if (index.x == 0 && index.y == 1)
+            {//New Game Button
+                if (!Core.client.IsConnected)
+                {//Not connected, disallow button
+                    MelonLogger.Error("Require connection to Archipelago room to create new game.");
+                    return false;
+                }else if (Core.client.session.RoomState.Seed != Core.save.getSeed())
+                {//Need to initialize a new save
+                    MelonLogger.Msg("Reset local archipelago save file!");
+                    Core.save.Reset();
+                    Core.save.setSeed(Core.client.session.RoomState.Seed);
+                    _ = Core.GetArchipelagoData();
+                    while (ArchipelagoData.DataLoaded)
+                    {
+                        //Add code to display something here maybe?
+                    }
+                    Core.syncState = SyncState.Ready;
+                }
+                else
+                {// Just start local save
+                    Core.syncState = SyncState.Ready;
+                }
+            }
+
+                return true;
         }
     }
 

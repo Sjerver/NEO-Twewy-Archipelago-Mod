@@ -731,9 +731,11 @@ namespace NEOTwewyArchipelagoMod
         };
     }
 
-    public class NEOTwewyItemData(int archi_id, int game_id)
+    public class NEOTwewyItemData(int archi_id, int game_id, int count = 1)
     {
         public int id = game_id;
         public int arch_id = archi_id;
+        public int count = count;
+        public int reward_ID = 0;
     }
 }

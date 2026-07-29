@@ -3,6 +3,7 @@ using Il2Cpp;
 using Il2CppMaster;
 using MelonLoader;
 using UnityEngine;
+using static Il2Cpp.ScenarioFlowComicComponent.Starter;
 
 [assembly: MelonInfo(typeof(NEOTwewyArchipelagoMod.Core), "NEOTwewyArchipelagoMod", "1.0.0", "sjerver", null)]
 [assembly: MelonGame("SQUARE ENIX", "NEO: The World Ends with You")]
@@ -13,7 +14,7 @@ namespace NEOTwewyArchipelagoMod
     {
         //Essentially static constants
         public static string GAME_NAME = "NEO: The World Ends with You";
-        public static int ARCHIPELAGO_ITEM_ID = 5000;
+        public static long ARCHIPELAGO_ITEM_ID = 5000;
         public static bool DEBUG = false;
 
         public static KeyCode SKIP_DAY_BUTTON = KeyCode.F5;
@@ -38,9 +39,8 @@ namespace NEOTwewyArchipelagoMod
             Scenario.EName.System_Battle_DisableBadgeDrop 
         };
 
-
-        //Queue for Rewards that should be given to the player via ReserveScenarioReward()
-        public static Queue<QueuedReward> rewardQueue = new Queue<QueuedReward>();
+        //Current save object
+        public static ModSave save = new ModSave();
 
         //Local storage for current newest day in game
         public static int furthestDayReached = -1;
@@ -54,13 +54,9 @@ namespace NEOTwewyArchipelagoMod
 
         //Whether we are connecting to the server already
         private bool _connecting = false;
-        //Storage if the goal has been achieved
-        private static bool _goalAchieved = false;
-        //Locations checked in game that need to be send to the server once possible
-        public static Queue<long> pendingLocations = new();
-        //
-        public static string seed = string.Empty;
 
+        //Current state on whether we can sync local save data
+        public static SyncState syncState = SyncState.Offline;
 
         public override void OnInitializeMelon()
         {
@@ -71,27 +67,11 @@ namespace NEOTwewyArchipelagoMod
             {
                 MelonLogger.Error("Failed to connect to the Archipelago server.");
                 MelonLogger.Error("Please check your configuration and restart the game.");
-
-                Application.Quit();
-                return;
             }
+            updateSyncState();
 
-
-            //Loading local save data and assigning values based on it
-            seed = client.session.RoomState.Seed;
-            ModSave.Load(seed);
-
-            _goalAchieved = ModSave.Data.goalAchieved;
-            while (ModSave.Data.pendingLocations.Count > 0)
-            {
-                pendingLocations.Enqueue(ModSave.Data.pendingLocations.Dequeue());
-            }
-            while (ModSave.Data.rewardQueue.Count > 0)
-            {
-                rewardQueue.Enqueue(ModSave.Data.rewardQueue.Dequeue());
-            }
-
-            ArchipelagoData.LoadStaticLocations();
+            //Assemble new rewards for every item so archipelago can hand them out
+            ArchipelagoData.AssembleNewRewards();
 
             LoggerInstance.Msg("Initialized.");
         }
@@ -103,19 +83,38 @@ namespace NEOTwewyArchipelagoMod
                 _connecting = true;
                 _ = TryReconnect();
             }
-            if (client.IsConnected && !ArchipelagoData.DataLoaded)
-            { // if we are connected get location data from the server, to edit game data
-                ArchipelagoData.DataLoaded = true;
-                LoadArchipelagoData();
+
+
+
+
+            if (syncState == SyncState.Ready)
+            {
+                while (client.IsConnected && save.getPendingLocationSize() > 0)
+                {//If we have locations we need to do send to the server
+                    Core.client.session.Locations.CompleteLocationChecks([save.dequeueLocation()]);
+                }
+
+                if (client.IsConnected && save.getGoalAchieved())
+                { //Inform the server that we reached our goal
+                    client.session.SetGoalAchieved();
+                }
+
+                while (client.pendingItems.Count > 0)
+                { //If we are to receive items from the client, and have done the work to be able to receive them
+
+                    PendingItem receivedItem = client.pendingItems.Dequeue();
+                    //MelonLogger.Msg($"Received Item: {receivedItem.Item.ItemName} at index {receivedItem.Index}");
+                    if (receivedItem.Index <= save.getLastItemIndex())
+                    { // Only receive item with an index higher than the last item we received
+                        continue;
+                    }
+                    long rewardID = ArchipelagoData.ReceivableRewards[receivedItem.Item.ItemId].reward_ID;
+                    int itemCount = ArchipelagoData.ReceivableRewards[receivedItem.Item.ItemId].count;
+                    save.enqueueReward(new QueuedReward((int)rewardID, receivedItem.Index, itemCount));
+                }
             }
-            if (client.IsConnected && pendingLocations.Count > 0)
-            { //If we have locations we need to do send to the server
-                FlushPendingLocations();
-            }
-            if (client.IsConnected && _goalAchieved)
-            { //Inform the server that we reached our goal
-                client.session.SetGoalAchieved();
-            }
+           
+
 
             if (!inBattle && inField)
             { //Only if the battle scene is not loaded and the field scene is loaded
@@ -130,7 +129,7 @@ namespace NEOTwewyArchipelagoMod
                 }
 
                 if (SaveLoadController.Get<SaveDataField>().GetTipsFlag(Tips.ELabel.Tips_0003))
-                {
+                {//Only once we can ensure that we have at least some pins equipped
                     for (int i = 0; i < alwaysOnFlags.Count; i++)
                     {
                         Scenario.EName flag = alwaysOnFlags[i];
@@ -152,32 +151,15 @@ namespace NEOTwewyArchipelagoMod
                         }
                     }
                 }
-            
-                
-
-
-                //TODO: Move this out of field only
-                while (client.pendingItems.Count > 0)
-                { //If we are to receive items from the client, and have done the work to be able to receive them
-                    
-                    PendingItem receivedItem = client.pendingItems.Dequeue();
-                    //MelonLogger.Msg($"Received Item: {receivedItem.Item.ItemName} at index {receivedItem.Index}");
-                    if (receivedItem.Index <= ModSave.Data.LastProcessedItemIndex)
-                    { // Only receive item with an index higher than the last item we received
-                        continue;
-                    }
-                    long rewardID = ArchipelagoData.ReceivableRewards[receivedItem.Item.ItemId];
-                    rewardQueue.Enqueue(new QueuedReward((int)rewardID, receivedItem.Index));
-                }
 
                 //Run Reward Queue
-                while (rewardQueue.Count > 0 && FieldManager.Instance.IsPromptStatus())
+                while (save.getRewardQueueSize() > 0 && FieldManager.Instance.IsPromptStatus() && syncState != SyncState.WrongSeed)
                 {//If rewards are queued and we can trigger a reward pop-up
-                    QueuedReward rewardToTrigger = rewardQueue.Dequeue();
+                    QueuedReward rewardToTrigger = save.dequeueReward();
                     //MelonLogger.Msg(rewardToTrigger);
                     FieldManager.Instance.ReserveScenarioReward((ScenarioRewards.ELabel)rewardToTrigger.RewardID, 1);
-                    ModSave.Data.LastProcessedItemIndex = Math.Max(ModSave.Data.LastProcessedItemIndex, rewardToTrigger.ItemIndex);
-                    ModSave.Save();
+                    save.setLastItemIndex(Math.Max(save.getLastItemIndex(), rewardToTrigger.ItemIndex));
+                    save.Save();
                 }
             }
 
@@ -192,10 +174,10 @@ namespace NEOTwewyArchipelagoMod
                 // Triggers Firestorm D1 Reward
                 // Does not work in battles! So properly needs to be in a waiting list or something for archipelago
                 // Only Slot 1 Works??
-                rewardQueue.Enqueue(new QueuedReward((int)Il2CppMaster.ScenarioRewards.ELabel.Reward_1w1d_020,-1));
+                //rewardQueue.Enqueue(new QueuedReward((int)Il2CppMaster.ScenarioRewards.ELabel.Reward_1w1d_020,-1));
                 //FieldManager.Instance.ReserveScenarioReward(Il2CppMaster.ScenarioRewards.ELabel.Reward_1w1d_020, 1); //Firestorm
                 //FieldManager.Instance.ReserveScenarioReward(Il2CppMaster.ScenarioRewards.ELabel.Reward_1w1d_010, 1); //Joli Becot
-                rewardQueue.Enqueue(new QueuedReward((int)Il2CppMaster.ScenarioRewards.ELabel.Reward_Test_001,-1));
+                //rewardQueue.Enqueue(new QueuedReward((int)Il2CppMaster.ScenarioRewards.ELabel.Reward_Test_001,-1));
                 //FieldManager.Instance.ReserveScenarioReward(Il2CppMaster.ScenarioRewards.ELabel.Reward_Test_001, 1); // FP 3
 
 
@@ -238,7 +220,7 @@ namespace NEOTwewyArchipelagoMod
                 int gameDay = SaveLoadController.Get<SaveDataField>().GetScenarioDateDay();
                 int locationID = ScenarioFlagList.endOfDayFlag.FirstOrDefault(x => x.Value.Item1 == gameDay).Value.Item2;
 
-                var checkedLocations = client.session.Locations.AllLocationsChecked;
+                var checkedLocations = save.getCheckedLocations();
                 bool dayLocationReached = checkedLocations.Any(loc => loc == locationID);
                 if (dayLocationReached)
                 {//if we reached the clear location for a chapter/day
@@ -340,33 +322,18 @@ namespace NEOTwewyArchipelagoMod
 
         public override void OnApplicationQuit()
         {
-            if (pendingLocations.Count > 0)
-            { //Before closing the game and we might need to store some information that could not be sent to server
-                foreach (var location in pendingLocations)
-                {
-                    if (!ModSave.Data.pendingLocations.Contains(location))
-                        ModSave.Data.pendingLocations.Enqueue(location);
-                }
-            }
-            if(rewardQueue.Count > 0)
-            {
-                foreach(var reward in rewardQueue)
-                {
-                    if (!ModSave.Data.rewardQueue.Contains(reward))
-                        ModSave.Data.rewardQueue.Enqueue(reward);
-                }
-            }
-            ModSave.Data.goalAchieved = _goalAchieved;
-            ModSave.Save();
-
+            if (syncState == SyncState.WrongSeed) { return; }
+            save.Save();
+            
         }
 
         public static void CheckEndOfChapterReward(Scenario.EName scenarioFlag, bool value)
         { //Based on certain scenarioFlags trigger the respective end of day location
+            if (syncState == SyncState.WrongSeed) { return; }
             if (ScenarioFlagList.endOfDayFlag.ContainsKey(scenarioFlag) && value == true)
             {
                 var (day, rewardID) = ScenarioFlagList.endOfDayFlag[scenarioFlag];
-                Core.queueNonStandardReward(rewardID);
+                Core.queueCustomLocation(rewardID);
 
                 var gameDay = SaveLoadController.Get<SaveDataField>().GetNewestDateDay();
                 int collectedSecretReports = CountSecretReports();
@@ -375,7 +342,7 @@ namespace NEOTwewyArchipelagoMod
                 {
                     furthestDayReached++;
                 }
-                if (furthestDayReached == 3) { _goalAchieved = true; }
+                if (furthestDayReached == 3) { save.setGoalAchieved(true); }
             }
         }
 
@@ -398,7 +365,7 @@ namespace NEOTwewyArchipelagoMod
             return count;
         }
 
-        private async void LoadArchipelagoData()
+        public static async Task GetArchipelagoData()
         {//Get Locations in our game and what items are in them
             long[] locations = client.session.Locations.AllLocations.ToArray();
 
@@ -409,23 +376,14 @@ namespace NEOTwewyArchipelagoMod
 
             MelonLogger.Msg($"Received {items.Count} locations");
 
-            ArchipelagoData.LoadArchipelagoLocations(items);
+            save.SaveArchipelagoLocations(items);
         }
 
-        public static void queueNonStandardReward(int rewardID)
+        public static void queueCustomLocation(int locationID)
         {//Queue a reward that can't be normally saved by the game
-            bool nonStandardInSaveFile = ModSave.Data.nonStandardLocations.Contains((long)rewardID);
-            bool nonStandardChecked = client.session.Locations.AllLocationsChecked.Contains((long)rewardID);
-
-
-            if (!nonStandardInSaveFile)
-            {// If the location has not been recorded in local mod save file
-                Core.rewardQueue.Enqueue(new QueuedReward(rewardID, -1));
-                ModSave.Data.nonStandardLocations.Add(rewardID);
-            } else if (nonStandardInSaveFile && !nonStandardChecked)
-            {//If the location is in local mod save file but not checked in archipelago
-                pendingLocations.Enqueue((long)rewardID);
-            }
+            if (syncState == SyncState.WrongSeed) { return; }
+            save.enqueueLocation(locationID);
+            save.addCheckedLocation(locationID);
         }
 
         private async Task TryReconnect()
@@ -441,30 +399,53 @@ namespace NEOTwewyArchipelagoMod
             finally
             {
                 _connecting = false;
+
+                updateSyncState();
             }
         }
 
-        private static void FlushPendingLocations()
-        {//Send locations checked in game to the server
-
-            while (pendingLocations.Count > 0)
+        public void updateSyncState()
+        {
+            if (!client.IsConnected)
             {
-                Core.client.session.Locations.CompleteLocationChecks([pendingLocations.Dequeue()]);
+                //MelonLogger.Msg("Can#t get server seed");
+                syncState = SyncState.Offline;
             }
+            else if (save.getSeed() == client.session.RoomState.Seed)
+            {
+                //MelonLogger.Msg("Current Seed does match save file");
+                syncState = SyncState.Ready;
+            }
+            else
+            {
+                syncState = SyncState.WrongSeed;
+                if(save.getSeed() == null)
+                {
+
+                    MelonLogger.MsgDirect(MelonLoader.Logging.ColorARGB.Red, "Current Seed is null");
+                }
+                else
+                {
+                    MelonLogger.MsgDirect(MelonLoader.Logging.ColorARGB.Red, "Current Seed does not match save file");
+                }
+                    
 
 
-            pendingLocations.Clear();
+            }
         }
+
     }
 
     public class QueuedReward
     {//This class is used for rewards received from the server
         public int RewardID { get; set; }
         public long ItemIndex { get; set; }
-        public QueuedReward(int rewardID, long itemIndex)
+        public int itemCount { get; set; }
+        public QueuedReward(int rewardID, long itemIndex, int itemCount = 1)
         {
             RewardID = rewardID;
             ItemIndex = itemIndex;
+            this.itemCount = itemCount;
         }
 
         public override string ToString()
