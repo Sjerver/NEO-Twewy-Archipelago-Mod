@@ -43,13 +43,13 @@ namespace NEOTwewyArchipelagoMod
         }
 
         public string getSeed() { return Data.Seed; }
-        public string setSeed(string seed) { return Data.Seed = seed; }
+        public void setSeed(string seed) { Data.Seed = seed; Save(); }
 
         public bool getGoalAchieved(){ return Data.goalAchieved;}
-        public void setGoalAchieved(bool goalAchieved) { Data.goalAchieved = goalAchieved; }
+        public void setGoalAchieved(bool goalAchieved) { Data.goalAchieved = goalAchieved; Save(); }
 
         public long getLastItemIndex(){return Data.LastItemIndex;}
-        public void setLastItemIndex(long LastItemIndex) { Data.LastItemIndex = LastItemIndex; }
+        public void setLastItemIndex(long LastItemIndex) { Data.LastItemIndex = LastItemIndex; Save(); }
 
         public HashSet<long> getCheckedLocations() { return Data.checkedLocations; }
         public int getPendingLocationSize()
@@ -80,6 +80,7 @@ namespace NEOTwewyArchipelagoMod
         {
             if (Core.syncState == SyncState.WrongSeed) { return; }
             Data.checkedLocations.Add(location);
+            Save();
         }
 
         public long dequeueLocation() { return Data.pendingLocations.Dequeue(); }
