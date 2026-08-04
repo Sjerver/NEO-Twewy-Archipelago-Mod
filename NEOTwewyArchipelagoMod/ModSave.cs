@@ -1,5 +1,6 @@
 ﻿using Archipelago.MultiClient.Net.Models;
 using Il2CppHnLib;
+using Il2CppSteamworks;
 using Il2CppSystem.Linq;
 using JetBrains.Annotations;
 using MelonLoader;
@@ -52,6 +53,11 @@ namespace NEOTwewyArchipelagoMod
         public void setLastItemIndex(long LastItemIndex) { Data.LastItemIndex = LastItemIndex; Save(); }
 
         public HashSet<long> getCheckedLocations() { return Data.checkedLocations; }
+
+        public bool TryGetShopItem(int locationID, out ArchipelagoItem item)
+        {
+            return Data.shopLocationsMapping.TryGetValue(locationID, out item);
+        }
         public int getPendingLocationSize()
         {
             return Data.pendingLocations.Count;
@@ -83,6 +89,11 @@ namespace NEOTwewyArchipelagoMod
             Save();
         }
 
+        public bool IsLocationChecked(long location)
+        {
+            return Data.checkedLocations.Contains(location);
+        }
+
         public long dequeueLocation() { return Data.pendingLocations.Dequeue(); }
 
         public QueuedReward dequeueReward() { return Data.rewardQueue.Dequeue(); }
@@ -91,17 +102,38 @@ namespace NEOTwewyArchipelagoMod
         {
             foreach (KeyValuePair<long, ScoutedItemInfo> entry in locationData)
             {//For all locations in our game we received from the server
-                if (entry.Value.ItemGame == Core.GAME_NAME)
-                {//If the item is in our game, we can use the normal itemID in the normal reward
-                    if (Core.DEBUG) { MelonLogger.Msg($"Location {entry.Value.LocationDisplayName} ({entry.Key}) has {entry.Value.ItemName} ({entry.Value.ItemId})"); }
-                    Data.archiLocationItemMapping.Add(entry.Key, FromScoutedItem(entry.Value.ItemId, entry.Value));
-                }
-                else
-                {//If the item is not originally from our game we need to use the archipelago replacement item
-                    if (Core.DEBUG) { MelonLogger.Msg($"Location {entry.Value.LocationDisplayName} ({entry.Key}) has {entry.Value.ItemName} ({entry.Value.ItemId})"); }
-                    Data.archiLocationItemMapping.Add(entry.Key, FromScoutedItem(Core.ARCHIPELAGO_ITEM_ID, entry.Value));
-                }
+                try
+                {
+                    long itemID;
+                    if (entry.Value.ItemGame == Core.GAME_NAME && entry.Value.Player.Name == Config.Data.slotName)
+                    {//If the item is in our game, we can use the normal itemID in the normal reward
+                        //Item also needs be in our slot!
+                        if (Core.DEBUG) { MelonLogger.Msg($"Location {entry.Value.LocationDisplayName} ({entry.Key}) has {entry.Value.ItemName} ({entry.Value.ItemId})"); }
+                        itemID = NEOTwewyDataManager.item_data[entry.Value.ItemName].id;
+                    }
+                    else
+                    {//If the item is not originally from our game we need to use the archipelago replacement item
+                        if (Core.DEBUG) { MelonLogger.Msg($"Location {entry.Value.LocationDisplayName} ({entry.Key}) has {entry.Value.ItemName} ({entry.Value.ItemId})"); }
+                        itemID = Core.ARCHIPELAGO_ITEM_ID;
+                        //Data.scenarioLocationsMapping.Add(entry.Key, FromScoutedItem( entry.Value));
+                    }
 
+                    //MelonLogger.Msg($"Location {entry.Value.LocationDisplayName} ({entry.Key}) has {entry.Value.ItemName} ({entry.Value.ItemId})");
+                    if (entry.Key > ArchipelagoData.SHOP_LOCATION_MODIFIER)
+                    { //if location is a shop location, we need to save it in the shop mapping
+                        Data.shopLocationsMapping.Add(entry.Key - ArchipelagoData.SHOP_LOCATION_MODIFIER, FromScoutedItem(itemID, entry.Value));
+
+                    }
+                    else
+                    {  //if location is a normal scenario location, we need to save it in the scenario mapping
+                        Data.scenarioLocationsMapping.Add(entry.Key, FromScoutedItem(itemID, entry.Value));
+                    }
+
+                }
+                catch (Exception e)
+                {
+                    MelonLogger.Msg($"Error saving location {entry.Value.LocationDisplayName} ({entry.Key}) with {entry.Value.ItemName} ({entry.Value.ItemId}): {e.Message}");
+                }
             }
             Save();
             ArchipelagoData.DataLoaded = true;
@@ -115,13 +147,22 @@ namespace NEOTwewyArchipelagoMod
 
         public static ArchipelagoItem FromScoutedItem(long id, ScoutedItemInfo info)
         {
+            long itemCount = 1;
+            if (info.ItemGame == Core.GAME_NAME && info.Player.Name == Config.Data.slotName)
+            {
+                itemCount = NEOTwewyDataManager.item_data[info.ItemName].count;
+            }
+            
+            
             return new ArchipelagoItem(
                 id,
                 info.ItemName,
                 info.LocationId,
                 info.LocationName,
                 info.ItemId,
-                info.ItemGame
+                info.ItemGame,
+                itemCount,
+                info.Player.Name
             );
         }
     }
@@ -145,7 +186,8 @@ namespace NEOTwewyArchipelagoMod
         //Remember what is currently in the reward queue when the game closed
 
         //Location ID, ItemID
-        public Dictionary<long, ArchipelagoItem> archiLocationItemMapping { get; set; } = new Dictionary<long, ArchipelagoItem>();
+        public Dictionary<long, ArchipelagoItem> scenarioLocationsMapping { get; set; } = new Dictionary<long, ArchipelagoItem>();
+        public Dictionary<long, ArchipelagoItem> shopLocationsMapping { get; set; } = new Dictionary<long, ArchipelagoItem>();
 
     }
 

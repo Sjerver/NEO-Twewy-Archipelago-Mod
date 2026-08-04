@@ -98,7 +98,6 @@ namespace NEOTwewyArchipelagoMod
                 { //Inform the server that we reached our goal
                     client.session.SetGoalAchieved();
                 }
-
                 while (client.pendingItems.Count > 0)
                 { //If we are to receive items from the client, and have done the work to be able to receive them
 
@@ -108,6 +107,19 @@ namespace NEOTwewyArchipelagoMod
                     { // Only receive item with an index higher than the last item we received
                         continue;
                     }
+
+                    if (save.TryGetShopItem((int)receivedItem.Item.LocationId - (int)ArchipelagoData.SHOP_LOCATION_MODIFIER, out ArchipelagoItem archiItem))
+                    {//If the location is a shop location
+                        //int goodID = (int)archiItem.locationID - (int)NEOConstants.shopLocationIDModifier;
+                        //int purchaseCount = SaveLoadController.Get<SaveDataShop>().GetShopGoodsPurchases((ShopGoods.ELabel)goodID);
+
+                        if (!NEOTwewyDataManager.NON_SHOP_ITEMS.Contains(archiItem.id) && save.IsLocationChecked(receivedItem.Item.LocationId))
+                        {
+                            //Don't give the item if the shop can give you the item normally and the location has been checked
+                            continue;
+                        }
+                    }
+
                     long rewardID = ArchipelagoData.ReceivableRewards[receivedItem.Item.ItemId].reward_ID;
                     int itemCount = ArchipelagoData.ReceivableRewards[receivedItem.Item.ItemId].count;
                     save.enqueueReward(new QueuedReward((int)rewardID, receivedItem.Index, itemCount));

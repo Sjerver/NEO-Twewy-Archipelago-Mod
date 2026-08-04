@@ -123,6 +123,8 @@ namespace NEOTwewyArchipelagoMod
 
         public void SetupSubscriptions()
         {
+            pendingItems.Clear(); //So we don't receive items if we connect to the wrong room
+
             session.Items.ItemReceived += OnItemReceived;
             session.Socket.SocketClosed += OnSocketClosed;
             session.Socket.ErrorReceived += OnSocketError;
@@ -153,7 +155,7 @@ namespace NEOTwewyArchipelagoMod
 
         private void OnMessageReceived(LogMessage message)
         {
-            MelonLogger.Msg($"[Archipelago] {message}");
+            MelonLogger.MsgDirect(MelonLoader.Logging.ColorARGB.Cyan,$"[Archipelago] {message}");
         }
     }
 
