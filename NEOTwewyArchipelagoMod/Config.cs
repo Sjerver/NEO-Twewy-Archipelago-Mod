@@ -13,8 +13,7 @@ namespace NEOTwewyArchipelagoMod
 {
     public static class Config
     {
-        private static string SavePath =>
-            Path.Combine(MelonEnvironment.UserDataDirectory, "NEOTwewyArchipelagoConfig.json");
+        private static string SavePath = "Mods/NeoTwewyArchipelago/NEOTwewyArchipelagoConfig.json";
 
         public static ConfigData Data { get; private set; } = new();
 
