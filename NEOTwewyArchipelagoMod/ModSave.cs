@@ -1,4 +1,5 @@
 ﻿using Archipelago.MultiClient.Net.Models;
+using Harmony;
 using Il2CppHnLib;
 using Il2CppSteamworks;
 using Il2CppSystem.Linq;
@@ -27,7 +28,16 @@ namespace NEOTwewyArchipelagoMod
             if (File.Exists(SavePath))
             {
                 string json = File.ReadAllText(SavePath);
-                Data = JsonConvert.DeserializeObject<ModSaveData>(json);
+                try
+                {
+                    Data = JsonConvert.DeserializeObject<ModSaveData>(json);
+                } catch (Exception e)
+                {
+                    MelonLogger.Error(e);
+                    MelonLogger.MsgDirect(MelonLoader.Logging.ColorARGB.Red, "Save could not be loaded, save file is being reset");
+                    Reset();
+                }
+               
             }
             Save();
         }
@@ -52,11 +62,34 @@ namespace NEOTwewyArchipelagoMod
         public long getLastItemIndex(){return Data.LastItemIndex;}
         public void setLastItemIndex(long LastItemIndex) { Data.LastItemIndex = LastItemIndex; Save(); }
 
-        public HashSet<long> getCheckedLocations() { return Data.checkedLocations; }
+        public HashSet<ArchipelagoLocationID> getCheckedLocations() { return Data.checkedLocations; }
 
-        public bool TryGetShopItem(int locationID, out ArchipelagoItem item)
+        public bool TryGetArchipelagoItem(ArchipelagoLocationID locationID, out ArchipelagoItem item)
+        {
+            GameLocationID gameLocation = locationID.ToGameLocation();
+            LocationType type = locationID.GetLocationType();
+            
+            if (type == LocationType.ShopGood)
+            {
+                return TryGetShopItem(gameLocation, out item);
+            }
+            else if (type == LocationType.ScenarioReward)
+            {
+                return TryGetScenarioRewardItem(gameLocation, out item);
+            }
+
+            item = null;
+            return false;
+        }
+        
+        public bool TryGetShopItem(GameLocationID locationID, out ArchipelagoItem item)
         {
             return Data.shopLocationsMapping.TryGetValue(locationID, out item);
+        }
+
+        public bool TryGetScenarioRewardItem(GameLocationID locationID, out ArchipelagoItem item)
+        {
+            return Data.scenarioLocationsMapping.TryGetValue(locationID, out item);
         }
         public int getPendingLocationSize()
         {
@@ -68,7 +101,7 @@ namespace NEOTwewyArchipelagoMod
             return Data.rewardQueue.Count;
         }
 
-        public  void enqueueLocation(long location)
+        public  void enqueueLocation(ArchipelagoLocationID location)
         {
             if (Core.syncState == SyncState.WrongSeed) { return; }
             Data.pendingLocations.Enqueue(location);
@@ -82,19 +115,19 @@ namespace NEOTwewyArchipelagoMod
             Save();
         }
 
-        public void addCheckedLocation(long location)
+        public void addCheckedLocation(ArchipelagoLocationID location)
         {
             if (Core.syncState == SyncState.WrongSeed) { return; }
             Data.checkedLocations.Add(location);
             Save();
         }
 
-        public bool IsLocationChecked(long location)
+        public bool IsLocationChecked(ArchipelagoLocationID location)
         {
             return Data.checkedLocations.Contains(location);
         }
 
-        public long dequeueLocation() { return Data.pendingLocations.Dequeue(); }
+        public ArchipelagoLocationID dequeueLocation() { return Data.pendingLocations.Dequeue(); }
 
         public QueuedReward dequeueReward() { return Data.rewardQueue.Dequeue(); }
 
@@ -117,16 +150,24 @@ namespace NEOTwewyArchipelagoMod
                         itemID = Core.ARCHIPELAGO_ITEM_ID;
                         //Data.scenarioLocationsMapping.Add(entry.Key, FromScoutedItem( entry.Value));
                     }
-
+                    ArchipelagoLocationID keyID = new ArchipelagoLocationID(entry.Key);
                     //MelonLogger.Msg($"Location {entry.Value.LocationDisplayName} ({entry.Key}) has {entry.Value.ItemName} ({entry.Value.ItemId})");
-                    if (entry.Key > ArchipelagoData.SHOP_LOCATION_MODIFIER)
+                    if(entry.Key > ArchipelagoData.SCENARIO_LOCATION_MODIFIER)
+                    {
+                        //if location is a normal scenario location, we need to save it in the scenario mapping
+                        Data.scenarioLocationsMapping.Add(keyID.ToGameLocation(), FromScoutedItem(itemID, entry.Value));
+                    }
+                    else if (entry.Key > ArchipelagoData.DIVE_LOCATION_MODIFIER)
+                    {
+                        Data.diveLocationsMapping.Add(keyID.ToGameLocation(), FromScoutedItem(itemID, entry.Value));
+                    }
+                    else if (entry.Key > ArchipelagoData.SHOP_LOCATION_MODIFIER)
                     { //if location is a shop location, we need to save it in the shop mapping
-                        Data.shopLocationsMapping.Add(entry.Key - ArchipelagoData.SHOP_LOCATION_MODIFIER, FromScoutedItem(itemID, entry.Value));
+                        Data.shopLocationsMapping.Add(keyID.ToGameLocation(), FromScoutedItem(itemID, entry.Value));
 
                     }
                     else
-                    {  //if location is a normal scenario location, we need to save it in the scenario mapping
-                        Data.scenarioLocationsMapping.Add(entry.Key, FromScoutedItem(itemID, entry.Value));
+                    {  
                     }
 
                 }
@@ -157,7 +198,7 @@ namespace NEOTwewyArchipelagoMod
             return new ArchipelagoItem(
                 id,
                 info.ItemName,
-                info.LocationId,
+                new ArchipelagoLocationID(info.LocationId),
                 info.LocationName,
                 info.ItemId,
                 info.ItemGame,
@@ -175,9 +216,9 @@ namespace NEOTwewyArchipelagoMod
         public long LastItemIndex { get; set; } = -1;
         // Remember the highest index of an item we received from the server
 
-        public HashSet<long> checkedLocations { get; set; } = new HashSet<long>();
+        public HashSet<ArchipelagoLocationID> checkedLocations { get; set; } = new HashSet<ArchipelagoLocationID>();
         //Remember locations which the game save can't remember because they were added by the mod
-        public Queue<long> pendingLocations { get; set; } = new Queue<long>();
+        public Queue<ArchipelagoLocationID> pendingLocations { get; set; } = new Queue<ArchipelagoLocationID>();
         //Remember locations checked that we could not tell the server about
         public bool goalAchieved { get; set; } = false;
         //Remember we achieved or goal in case we could not tell the server as such
@@ -186,8 +227,9 @@ namespace NEOTwewyArchipelagoMod
         //Remember what is currently in the reward queue when the game closed
 
         //Location ID, ItemID
-        public Dictionary<long, ArchipelagoItem> scenarioLocationsMapping { get; set; } = new Dictionary<long, ArchipelagoItem>();
-        public Dictionary<long, ArchipelagoItem> shopLocationsMapping { get; set; } = new Dictionary<long, ArchipelagoItem>();
+        public Dictionary<GameLocationID, ArchipelagoItem> scenarioLocationsMapping { get; set; } = new Dictionary<GameLocationID, ArchipelagoItem>();
+        public Dictionary<GameLocationID, ArchipelagoItem> shopLocationsMapping { get; set; } = new Dictionary<GameLocationID, ArchipelagoItem>();
+        public Dictionary<GameLocationID, ArchipelagoItem> diveLocationsMapping { get; set; } = new Dictionary<GameLocationID, ArchipelagoItem>();
 
     }
 

@@ -18,12 +18,12 @@ namespace NEOTwewyArchipelagoMod.HarmonyPatches
         {
             if (inFileName.ToString().Contains("ItemNameBDG"))
             {
-                MelonLogger.Msg("Modify Pin Names");
+                //MelonLogger.Msg("Modify Pin Names");
                 __result["ITM_BDG_Name_0313"].Content = "Archipelago";
             }
             else if (inFileName.ToString().Contains("ItemInfoBDG"))
             {
-                MelonLogger.Msg("Modify Pin Descriptions");
+                //MelonLogger.Msg("Modify Pin Descriptions");
                 __result["ITM_BDG_Info_0313"].Content = "A pin reminiscent of a multiworld. Seems to have various effects... ";
             }
 
@@ -80,7 +80,7 @@ namespace NEOTwewyArchipelagoMod.HarmonyPatches
                 //}
 
 
-                MelonLogger.Msg($"Add rewards to receive from Archipelago");
+                //MelonLogger.Msg($"Add rewards to receive from Archipelago");
                 //itemID, RewardID
                 foreach (KeyValuePair<long, NEOTwewyItemData> entry in ArchipelagoData.ReceivableRewards)
                 {
@@ -100,7 +100,7 @@ namespace NEOTwewyArchipelagoMod.HarmonyPatches
             }
             else if (assetName.Contains("EnemyData"))
             {
-                MelonLogger.Msg("Edit Enemy Data");
+                //MelonLogger.Msg("Edit Enemy Data");
 
                 JObject root = JObject.Parse(__result);
                 JArray targets = (JArray)root["mTarget"];
@@ -119,14 +119,14 @@ namespace NEOTwewyArchipelagoMod.HarmonyPatches
             }
             else if (assetName.Contains("BattleCharacter"))
             {
-                MelonLogger.Msg("Edit BattleChar data");
+                //MelonLogger.Msg("Edit BattleChar data");
 
                 JObject root = JObject.Parse(__result);
                 JArray targets = (JArray)root["mTarget"];
 
-                if (Core.DEBUG)
+                if (Core.DEBUG || Core.ENEMY_HP_1)
                 {
-                    MelonLogger.Msg("Set Enemy HP to 1");
+                    MelonLogger.MsgDirect(MelonLoader.Logging.ColorARGB.Crimson,"Set Enemy HP to 1");
                     for (int i = 0; i < targets.Count; i++)
                     {
                         if (targets[i]["mId"] == null)
@@ -209,7 +209,7 @@ namespace NEOTwewyArchipelagoMod.HarmonyPatches
 
             else if (assetName.Contains("Chapter"))
             {
-                //    //TODO: Test recruiting character in replaying chapter: Shoka did not join in w2d5
+                //    Test recruiting character in replaying chapter: Shoka did not join in w2d5
                 //    MelonLogger.Msg("Shuffling Chapter Order");
 
                 //    JObject root = JObject.Parse(__result);

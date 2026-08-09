@@ -23,6 +23,8 @@ namespace NEOTwewyArchipelagoMod
         //Queue of items the client received from the server
         public Queue<PendingItem> pendingItems = new();
 
+        private DateTime _lastSocketError = DateTime.MinValue;
+
         public bool AttemptConnectionSync()
         { //Attempt to connect synchronously at boot
             try
@@ -76,7 +78,7 @@ namespace NEOTwewyArchipelagoMod
             }
             catch (Exception e)
             {
-                MelonLogger.Error(e);
+                //MelonLogger.Error(e);
                 IsConnected = false;
             }
         }
@@ -149,7 +151,11 @@ namespace NEOTwewyArchipelagoMod
 
         private void OnSocketError(Exception e,string message)
         {
-            MelonLogger.Error($"Archipelago socket error: {message}");
+            if((DateTime.Now - _lastSocketError).TotalSeconds < 150)
+            {
+                MelonLogger.Error($"Archipelago socket error: {message}");
+                _lastSocketError = DateTime.Now;
+            }
             IsConnected = false;
         }
 

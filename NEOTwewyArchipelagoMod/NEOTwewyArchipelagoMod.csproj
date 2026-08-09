@@ -290,6 +290,7 @@
 		<Compile Include="HarmonyPatches\HarmonyGeneric.cs" />
 		<Compile Include="Core.cs" />
 		<Compile Include="NEOTwewyData.cs" />
+		<Compile Include="StructCoversion.cs" />
 		<Content Include="Directory.Build.props" />
 	</ItemGroup>
 

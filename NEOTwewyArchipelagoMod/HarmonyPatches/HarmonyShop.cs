@@ -2,6 +2,7 @@
 using Il2Cpp;
 using Il2CppMaster;
 using Il2CppUI;
+using Il2CppUI.Controller;
 using Il2CppUI.Panel;
 using Il2CppUI.Shop;
 using Il2CppUI.Utility;
@@ -37,7 +38,8 @@ namespace NEOTwewyArchipelagoMod.HarmonyPatches
             //MelonLogger.Msg($"ShopGoods loaded: {goods.Length}");
             foreach (ShopGoods good in goods)
             {
-                if (Core.save.TryGetShopItem((int)good.mId, out ArchipelagoItem archiItem))
+                GameLocationID gameLocationID = new GameLocationID(good.mId);
+                if (Core.save.TryGetShopItem(gameLocationID, out ArchipelagoItem archiItem))
                 {//If the shop good is an location
                     if (Core.DEBUG) { MelonLogger.Msg($"At {archiItem.locationName} replaced {good.mItem} with {archiItem.name} "); }
                     if (NEOTwewyDataManager.NON_SHOP_ITEMS.Contains(archiItem.id))
@@ -97,15 +99,15 @@ namespace NEOTwewyArchipelagoMod.HarmonyPatches
             }
         }
 
-        [HarmonyPostfix]
-        [HarmonyPatch("CreateUIInfoData")]
-        public static void Postfix(ShopScrollController __instance, UIInfoBase __result)
-        {
-            var shopInfo = __result.TryCast<ShopItemUIInfo>();
-            if (shopInfo == null)
-                return;
-            if (Core.DEBUG) { MelonLogger.Msg($"ShopGoods ID: {shopInfo.mMasterShopGoods.mId} with {shopInfo.mMasterShopGoods.mItem}"); }
-        }
+        //[HarmonyPostfix]
+        //[HarmonyPatch("CreateUIInfoData")]
+        //public static void Postfix(ShopScrollController __instance, UIInfoBase __result)
+        //{
+        //    var shopInfo = __result.TryCast<ShopItemUIInfo>();
+        //    if (shopInfo == null)
+        //        return;
+        //    if (Core.DEBUG) { MelonLogger.Msg($"ShopGoods ID: {shopInfo.mMasterShopGoods.mId} with {shopInfo.mMasterShopGoods.mItem}"); }
+        //}
 
         [HarmonyPrefix]
         [HarmonyPatch("Purchace")]
@@ -115,10 +117,12 @@ namespace NEOTwewyArchipelagoMod.HarmonyPatches
             ShopItemUIInfo shopInfo = __instance.GetSelectUIInfo<ShopItemUIInfo>();
             if (Core.DEBUG) { MelonLogger.Msg($"ShopGoods ID: {shopInfo.mMasterShopGoods.mId} with {shopInfo.mMasterShopGoods.mItem}"); }
 
-            if (Core.save.TryGetShopItem((int)shopInfo.mMasterShopGoods.mId, out ArchipelagoItem archiItem))
+            GameLocationID gamelocationID = new GameLocationID(shopInfo.mMasterShopGoods.mId);
+            if (Core.save.TryGetShopItem(gamelocationID, out ArchipelagoItem archiItem))
             {// If the bought shop good is an archipelago location, mark it as checked
-                Core.save.enqueueLocation(ArchipelagoData.SHOP_LOCATION_MODIFIER + (long)shopInfo.mMasterShopGoods.mId);
-                Core.save.addCheckedLocation(ArchipelagoData.SHOP_LOCATION_MODIFIER + (long)shopInfo.mMasterShopGoods.mId);
+                ArchipelagoLocationID archiLocation = gamelocationID.ToArchipelagoLocation(LocationType.ShopGood);
+                Core.save.enqueueLocation(archiLocation);
+                Core.save.addCheckedLocation(archiLocation);
             }
         }
 
@@ -140,10 +144,11 @@ namespace NEOTwewyArchipelagoMod.HarmonyPatches
                     int currentlyOwnedAmount = SaveLoadController.Get<SaveDataBadge>().GetStackCount((Badge.ELabel)__instance.MasterBadge.ItemId);
                     if (__instance.mMasterShopGoods.mExchange == GoodsExchange.ELabel.Invalid && currentlyOwnedAmount < 99)
                     {//Is this not an exchange good and we have less than 99 of the pin
-                        uint id = __instance.mMasterShopGoods.Id;
-                        int timesBoughtGood = SaveLoadController.Get<SaveDataShop>().GetShopGoodsPurchases((ShopGoods.ELabel)id);
+                        GameLocationID id = new GameLocationID(__instance.mMasterShopGoods.Id);
+                        int timesBoughtGood = SaveLoadController.Get<SaveDataShop>().GetShopGoodsPurchases((ShopGoods.ELabel)id.Value);
 
-                        Core.save.TryGetShopItem((int)id, out ArchipelagoItem archiItem);
+                        
+                        Core.save.TryGetShopItem(id, out ArchipelagoItem archiItem);
                         //MelonLogger.Msg($"Money pin {archiItem.name} currentlyOwnedAmount: {currentlyOwnedAmount} Location {archiItem.locationName} timesBought {timesBoughtGood} currentlyToSellMax {__instance.mMasterShopGoods.GetItemCountNow()} ");
                         
                         //Only mark the item as sold out if the player has bought all the items available in the shop good instead of checking player inventory
@@ -188,17 +193,24 @@ namespace NEOTwewyArchipelagoMod.HarmonyPatches
         [HarmonyPatch("UpdateParam")]
         public static void UpdateParam(ShopDescriptionController __instance, ShopScrollObject shopSelectObject, ItemUIInfo info)
         {
-            if (shopSelectObject == null)
+            // Should not trigger while we are trying to sell
+            ShopScrollController scrollController = __instance.GetComponentInParent<ShopScrollController>();
+            if (scrollController != null && scrollController.IsSellMode)
             {
-                MelonLogger.Error("shopSelectObject null");
                 return;
             }
 
+            if (shopSelectObject == null)
+            {
+                //MelonLogger.Error("shopSelectObject null");
+                return;
+            }
+            
             CurrentShopGoods = shopSelectObject.MasterShopGoods;
             
             if (CurrentShopGoods == null)
             {
-                MelonLogger.Error("MasterShopGoods null");
+                //MelonLogger.Error("MasterShopGoods null");
                 return;
             }
 
@@ -206,11 +218,11 @@ namespace NEOTwewyArchipelagoMod.HarmonyPatches
             if (CurrentShopGoods.Item == (AllItems.ELabel)Core.ARCHIPELAGO_ITEM_ID)
             {
                 //MelonLogger.Msg($"ShopDescriptionControllerPatch: Updating description for Archipelago item {mMasterShopGoods.mId}");
-                if (Core.save.TryGetShopItem((int)CurrentShopGoods.mId, out ArchipelagoItem archiItem))
+                if (Core.save.TryGetShopItem(new GameLocationID(CurrentShopGoods.mId), out ArchipelagoItem archiItem))
                 {
                     if (__instance.mValuablesDescription == null)
                     {
-                        MelonLogger.Error("mValuablesDescription null");
+                        //MelonLogger.Error("mValuablesDescription null");
                         return;
                     }
 

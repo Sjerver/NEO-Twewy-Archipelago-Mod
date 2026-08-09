@@ -894,7 +894,7 @@ namespace NEOTwewyArchipelagoMod
             {"5 FP", new NEOTwewyItemData(33001,30000, 5)},
             {"3x Rare Metal", new NEOTwewyItemData(33002,5101, 3)},
             {"3x Tektite", new NEOTwewyItemData(33003,5102, 3)},
-
+            {"2 FP", new NEOTwewyItemData(33004,30000, 2)},
         };
     }
 

@@ -2151,13 +2151,13 @@ namespace NEOTwewyArchipelagoMod
             };
 
         //ScenarioFlag that is at the very end of the day, Tuple is (day, customRewardId/locationID for the new reward)
-        public static readonly Dictionary<Scenario.EName, (int, int)> endOfDayFlag =
+        public static readonly Dictionary<Scenario.EName, (int, GameLocationID)> endOfDayFlag =
             new()
             {
-                {Scenario.EName.story_w1d1_90_010_main,(1, 101)},
-                {Scenario.EName.story_w1d2_90_010_main,(2, 102)},
-                {Scenario.EName.story_w1d3_90_010_main,(3, 103)},
-                {Scenario.EName.story_w1d4_90_010_main,(4, 104)},
+                {Scenario.EName.story_w1d1_90_010_main,(1, new GameLocationID(101))},
+                {Scenario.EName.story_w1d2_90_010_main,(2, new GameLocationID(102))},
+                {Scenario.EName.story_w1d3_90_010_main,(3, new GameLocationID(103))},
+                {Scenario.EName.story_w1d4_90_010_main,(4, new GameLocationID(104))},
             };
 
        
@@ -2165,9 +2165,9 @@ namespace NEOTwewyArchipelagoMod
     public static class CustomEventData
     {
         //Player charactera and which custmo reward they should trigger upon joining
-        public static readonly Dictionary<BattlePlayer.ELabel, int> memberToRewardID = new()
+        public static readonly Dictionary<BattlePlayer.ELabel, GameLocationID> memberToRewardID = new()
         {
-            { BattlePlayer.ELabel.Minamimoto, 110010 }
+            { BattlePlayer.ELabel.Minamimoto, new GameLocationID(110010) }
         };
     }
      

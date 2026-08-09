@@ -1,7 +1,9 @@
-﻿using Il2Cpp;
+﻿using HarmonyLib;
+using Il2Cpp;
+using Il2CppCriAtomDebugDetail;
 using Il2CppMaster;
+using Il2CppSystem;
 using MelonLoader;
-using HarmonyLib;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -15,16 +17,30 @@ namespace NEOTwewyArchipelagoMod.HarmonyPatches
     {
         public static bool Prefix(ScenarioRewards.ELabel __0, int __1)
         {
-            if ((long)__0 < ArchipelagoData.ARCHI_RECEIVE_START && !Core.save.getCheckedLocations().Contains((long)__0))
+            GameLocationID rewardID = new GameLocationID((long)__0);
+            ArchipelagoLocationID locationID = rewardID.ToArchipelagoLocation(LocationType.ScenarioReward);
+
+            if ((long)__0 < ArchipelagoData.ARCHI_RECEIVE_START && !Core.save.IsLocationChecked(locationID))
             {//The server needs to be alerted about the location
                 if (Core.DEBUG) { MelonLogger.Msg($"Queue location {__0} to send to server"); }
                 //Tell the server we got the location
-                Core.save.enqueueLocation((long)__0);
-                Core.save.addCheckedLocation((long)__0);
+
+
+                Core.save.enqueueLocation(locationID);
+                Core.save.addCheckedLocation(locationID);
+
+
+                if (Core.save.TryGetScenarioRewardItem(rewardID, out ArchipelagoItem item))
+                { 
+                    if (item.id == Core.ARCHIPELAGO_ITEM_ID)
+                    { //If the item is an archipelago item, we get from a vanilla reward. We want to still get a pop-up for what item we are sending
+                        Core.archiItemDisplayQueue.Enqueue(item);
+                    }
+                }
 
                 return false; //Don't call actual method to give the actual reward
             }
-            else if (Core.save.getCheckedLocations().Contains((long)__0))
+            else if (Core.save.IsLocationChecked(locationID))
             { // Location got already checked once
                 return false;
             }
@@ -46,4 +62,50 @@ namespace NEOTwewyArchipelagoMod.HarmonyPatches
 
         }
     }
+
+    [HarmonyPatch(typeof(DialogGetUI))]
+    public static class PatchDialogGetUI  
+    {
+        //Item of the currently to open dialogGetUI
+        private static ArchipelagoItem currentItem = null;
+
+        [HarmonyPrefix]
+        [HarmonyPatch("OpenItemGetDialog")]
+        public static void PreItemGetDialog(AllItems.ELabel itemID, ref int num, Il2CppSystem.Action onUIEndEvent, Il2CppSystem.Action<DialogGetUI> onEnded) 
+        {
+            if (num < 0 && (long)itemID == Core.ARCHIPELAGO_ITEM_ID) 
+            {
+                //MelonLogger.Msg($"Received location {-(num)} as Archipelago Item dialogue");  
+                ArchipelagoLocationID locationID = new ArchipelagoLocationID(-(num)); 
+                if (Core.save.TryGetArchipelagoItem(locationID, out ArchipelagoItem item)) 
+                { 
+                    //MelonLogger.Msg("Storing item as current"); 
+                    currentItem = item; 
+                } else { 
+                    currentItem = null; 
+                }
+                num = 1;
+            } 
+        }
+        [HarmonyPostfix]
+        [HarmonyPatch("Initialize")]
+        public static void PostInitialize(DialogGetUI __instance) 
+        { 
+            //MelonLogger.Msg($"Initializing for {(long)__instance.ItemId}"); 
+            if (__instance.ItemId != (AllItems.ELabel)Core.ARCHIPELAGO_ITEM_ID) return; 
+            if (currentItem == null)
+            {
+                //MelonLogger.Msg($"No current item detected");
+                return;
+            } 
+            //MelonLogger.Msg($"Changing text for {currentItem.name}"); 
+
+            __instance.SetMainText(currentItem.name); 
+            __instance.SetSubText($"A pin reminiscent of {currentItem.player}'s {currentItem.itemGame}."); 
+
+            currentItem = null; 
+        }
+    }
+
 }
+

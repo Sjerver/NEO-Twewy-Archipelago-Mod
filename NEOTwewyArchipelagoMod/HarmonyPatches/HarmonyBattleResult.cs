@@ -20,9 +20,13 @@ namespace NEOTwewyArchipelagoMod.HarmonyPatches
         [HarmonyPatch("UpdatePrizeList")]
         public static void UpdatePrizeList(BattleResultUI __instance,Dive diveMaster)
         {
+            //MelonLogger.Msg($"UpdatePrizeList Postfix {__instance.mDivePrizeList.Count}");
             foreach (BattleResultUI.PrizeInfo prize in __instance.mDivePrizeList)
             {
-                MelonLogger.Msg($"{diveMaster.Id} Prize: {prize.PrizeType} - {prize.PrizeStatus} - {prize.CharacterPt} - {prize.Item}");
+                //MelonLogger.Msg($"{diveMaster.Id} Prize: {prize.PrizeType} - {prize.PrizeStatus} - {prize.CharacterPt} - {prize.Item}");
+                // 10401 Prize: CharacterPt - Bronze - 2 - Invalid
+
+                GameLocationID diveRewardID = new GameLocationID(diveMaster.Id + ArchipelagoData.DIVE_RANK_MODIFIER[(SaveDataDive.EPrizeStatus)prize.PrizeStatus]);
             }
         }
     }

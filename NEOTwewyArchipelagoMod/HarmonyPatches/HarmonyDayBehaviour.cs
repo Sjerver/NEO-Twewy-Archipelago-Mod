@@ -18,7 +18,7 @@ namespace NEOTwewyArchipelagoMod.HarmonyPatches
     {
         public static void Prefix()
         {
-            MelonLogger.Msg($"Finished day {SaveLoadController.Get<SaveDataField>().GetNewestDateDay()}");
+            //MelonLogger.Msg($"Finished day {SaveLoadController.Get<SaveDataField>().GetNewestDateDay()}");
             if (Core.furthestDayReached > 0)
             {
                 //We set to furthestDayReached -1 because this method increases that by 1 naturally
@@ -30,7 +30,7 @@ namespace NEOTwewyArchipelagoMod.HarmonyPatches
 
         public static void Postfix()
         {
-            MelonLogger.Msg($"Start day {SaveLoadController.Get<SaveDataField>().GetNewestDateDay()}");
+            //MelonLogger.Msg($"Start day {SaveLoadController.Get<SaveDataField>().GetNewestDateDay()}");
             if (Core.furthestDayReached == 0 && SaveLoadController.Get<SaveDataField>().GetNewestDateDay() == 1)
             { // On day 0 manually increase since there is no custom end of chapter handling
                 Core.furthestDayReached++;

@@ -20,9 +20,9 @@ namespace NEOTwewyArchipelagoMod.HarmonyPatches
             //Did not trigger revisiting w2d7, but did trigger on normal visit
 
             //MelonLogger.Msg($"Member joined index {__0} and Label {__1}");
-            if (CustomEventData.memberToRewardID.TryGetValue(__1, out int rewardID))
+            if (CustomEventData.memberToRewardID.TryGetValue(__1, out GameLocationID rewardID))
             {
-                Core.queueCustomLocation(rewardID);
+                Core.queueCustomLocation(ArchipelagoData.GetArchipelagoLocation(rewardID, LocationType.ScenarioReward));
             }
 
         }

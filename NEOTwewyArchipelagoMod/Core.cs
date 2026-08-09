@@ -1,5 +1,6 @@
 ﻿using Archipelago.MultiClient.Net.Models;
 using Il2Cpp;
+using Il2CppInterop.Runtime;
 using Il2CppMaster;
 using MelonLoader;
 using UnityEngine;
@@ -15,13 +16,16 @@ namespace NEOTwewyArchipelagoMod
         //Essentially static constants
         public static string GAME_NAME = "NEO: The World Ends with You";
         public static long ARCHIPELAGO_ITEM_ID = 5000;
+
         public static bool DEBUG = false;
+        public static bool ENEMY_HP_1 = true;
+
 
         public static KeyCode SKIP_DAY_BUTTON = KeyCode.F5;
 
         //For stuff we call one time once we reach the field scene
         public bool initalized = false;
-        
+
         //Lists of flags that should always have a certain value
         public static List<Scenario.EName> alwaysOnFlags = new List<Scenario.EName>()
         {
@@ -34,13 +38,18 @@ namespace NEOTwewyArchipelagoMod
             Scenario.EName.System_EnableMusicSync, //QOL but could also arguably be locked
         };
 
-        public static List<Scenario.EName> alwaysOffFlags = new List<Scenario.EName>() 
-        { 
-            Scenario.EName.System_Battle_DisableBadgeDrop 
+        public static List<Scenario.EName> alwaysOffFlags = new List<Scenario.EName>()
+        {
+            Scenario.EName.System_Battle_DisableBadgeDrop
         };
 
         //Current save object
         public static ModSave save = new ModSave();
+
+        //Queue to display pop-up for items we send that otherwise dont give any notification to our player
+        public static Queue<ArchipelagoItem> archiItemDisplayQueue = new Queue<ArchipelagoItem>();
+        //Are we already processing an item to display?
+        public static bool processingArchiItem = false;
 
         //Local storage for current newest day in game
         public static int furthestDayReached = -1;
@@ -91,7 +100,7 @@ namespace NEOTwewyArchipelagoMod
             {
                 while (client.IsConnected && save.getPendingLocationSize() > 0)
                 {//If we have locations we need to do send to the server
-                    Core.client.session.Locations.CompleteLocationChecks([save.dequeueLocation()]);
+                    Core.client.session.Locations.CompleteLocationChecks([save.dequeueLocation().Value]);
                 }
 
                 if (client.IsConnected && save.getGoalAchieved())
@@ -108,12 +117,16 @@ namespace NEOTwewyArchipelagoMod
                         continue;
                     }
 
-                    if (save.TryGetShopItem((int)receivedItem.Item.LocationId - (int)ArchipelagoData.SHOP_LOCATION_MODIFIER, out ArchipelagoItem archiItem))
+                    ArchipelagoLocationID aLocationID = new ArchipelagoLocationID(receivedItem.Item.LocationId);
+                    LocationType type = ArchipelagoData.GetLocationType(aLocationID);
+                    GameLocationID gLocationID = (GameLocationID)ArchipelagoData.GetGameLocation(aLocationID);
+
+                    if (type == LocationType.ShopGood && save.TryGetShopItem(gLocationID, out ArchipelagoItem archiItem))
                     {//If the location is a shop location
                         //int goodID = (int)archiItem.locationID - (int)NEOConstants.shopLocationIDModifier;
                         //int purchaseCount = SaveLoadController.Get<SaveDataShop>().GetShopGoodsPurchases((ShopGoods.ELabel)goodID);
 
-                        if (!NEOTwewyDataManager.NON_SHOP_ITEMS.Contains(archiItem.id) && save.IsLocationChecked(receivedItem.Item.LocationId))
+                        if (!NEOTwewyDataManager.NON_SHOP_ITEMS.Contains(archiItem.id) && save.IsLocationChecked(aLocationID))
                         {
                             //Don't give the item if the shop can give you the item normally and the location has been checked
                             continue;
@@ -137,7 +150,7 @@ namespace NEOTwewyArchipelagoMod
                     initalized = true;
 
                     furthestDayReached = SaveLoadController.Get<SaveDataField>().GetNewestDateDay();
-                    MelonLogger.Msg($"Current Newest Day is {furthestDayReached}");
+                    //MelonLogger.Msg($"Current Newest Day is {furthestDayReached}");
                 }
 
                 if (SaveLoadController.Get<SaveDataField>().GetTipsFlag(Tips.ELabel.Tips_0003))
@@ -173,9 +186,14 @@ namespace NEOTwewyArchipelagoMod
                     save.setLastItemIndex(Math.Max(save.getLastItemIndex(), rewardToTrigger.ItemIndex));
                     save.Save();
                 }
+                if(archiItemDisplayQueue.Count > 0 && !processingArchiItem && FieldManager.Instance.IsMoveStatus())
+                {
+                    ProcessNextArchipelagoItem();
+                }
             }
 
-           
+
+
 
 
             if (DEBUG && Input.GetKeyDown(KeyCode.F8))
@@ -230,10 +248,9 @@ namespace NEOTwewyArchipelagoMod
 
                 //Get clear location for the current game day
                 int gameDay = SaveLoadController.Get<SaveDataField>().GetScenarioDateDay();
-                int locationID = ScenarioFlagList.endOfDayFlag.FirstOrDefault(x => x.Value.Item1 == gameDay).Value.Item2;
-
-                var checkedLocations = save.getCheckedLocations();
-                bool dayLocationReached = checkedLocations.Any(loc => loc == locationID);
+                GameLocationID locationID = ScenarioFlagList.endOfDayFlag.FirstOrDefault(x => x.Value.Item1 == gameDay).Value.Item2;
+                ArchipelagoLocationID aLocationID = (ArchipelagoLocationID)ArchipelagoData.GetArchipelagoLocation(locationID,LocationType.ScenarioReward);
+                bool dayLocationReached = save.IsLocationChecked(aLocationID);
                 if (dayLocationReached)
                 {//if we reached the clear location for a chapter/day
                     Scenario.EName[] flagList = ScenarioFlagList.flagsToBeatDay[gameDay];
@@ -344,11 +361,23 @@ namespace NEOTwewyArchipelagoMod
             if (syncState == SyncState.WrongSeed) { return; }
             if (ScenarioFlagList.endOfDayFlag.ContainsKey(scenarioFlag) && value == true)
             {
-                var (day, rewardID) = ScenarioFlagList.endOfDayFlag[scenarioFlag];
-                Core.queueCustomLocation(rewardID);
-
+                (int day, GameLocationID rewardID) = ScenarioFlagList.endOfDayFlag[scenarioFlag];
+                ArchipelagoLocationID archipelagoLocation = (ArchipelagoLocationID)ArchipelagoData.GetArchipelagoLocation(rewardID, LocationType.ScenarioReward);
+                
+                //Check if custom location contains secret report, if so we want to count as one more day
+                int additionalSecretReport = 0;
+                //MelonLogger.Msg($"Location {archipelagoLocation} checked? {save.IsLocationChecked(archipelagoLocation)} -> Item? {save.TryGetScenarioRewardItem(rewardID, out ArchipelagoItem sd)} -> {sd.name}");
+                if (!save.IsLocationChecked(archipelagoLocation) && save.TryGetScenarioRewardItem(rewardID,out ArchipelagoItem item))
+                {
+                   //MelonLogger.Msg($"Reward 1st Time {item.IsItemFromOurSlot()} && {item.name} && {item.name.Contains("Secret Report")}");
+                    if(item.IsItemFromOurSlot() &&item.name.Contains("Secret Report")){
+                        additionalSecretReport = 1;
+                    }
+                    
+                }
+                queueCustomLocation(archipelagoLocation);
                 var gameDay = SaveLoadController.Get<SaveDataField>().GetNewestDateDay();
-                int collectedSecretReports = CountSecretReports();
+                int collectedSecretReports = CountSecretReports() + additionalSecretReport;
                 MelonLogger.Msg($"End Day {gameDay} with {collectedSecretReports} Reports and furthest day {furthestDayReached}");
                 if(gameDay <= collectedSecretReports && gameDay == furthestDayReached)
                 {
@@ -391,7 +420,7 @@ namespace NEOTwewyArchipelagoMod
             save.SaveArchipelagoLocations(items);
         }
 
-        public static void queueCustomLocation(int locationID)
+        public static void queueCustomLocation(ArchipelagoLocationID locationID)
         {//Queue a reward that can't be normally saved by the game
             if (syncState == SyncState.WrongSeed) { return; }
             save.enqueueLocation(locationID);
@@ -444,6 +473,44 @@ namespace NEOTwewyArchipelagoMod
 
 
             }
+        }
+
+        private static void ProcessNextArchipelagoItem()
+        {
+            if (processingArchiItem)
+                return;
+
+            if (!FieldManager.Instance.IsPromptStatus() || !FieldManager.Instance.IsMoveStatus())
+                return;
+
+            if (archiItemDisplayQueue.Count == 0)
+                return;
+
+            processingArchiItem = true;
+
+            ArchipelagoItem item = archiItemDisplayQueue.Dequeue();
+            MelonLogger.Msg("Archipelago dialog open call");
+            FieldManager.Instance.m_FieldPlayer.SetStateFlag(FieldPlayer.EPlayerStateFlag.DisableInput, true);
+            DialogGetUI.OpenItemGetDialog(
+                (AllItems.ELabel)item.id,
+                -((int)item.locationID.Value), //Gets passed as negative location value to distinguish it from "real" item
+                DelegateSupport.ConvertDelegate<Il2CppSystem.Action>(OnArchipelagoUIEnd),
+                DelegateSupport.ConvertDelegate<Il2CppSystem.Action<DialogGetUI>>(OnArchipelagoDialogEnded)
+                );
+        }
+
+        private static void OnArchipelagoUIEnd()
+        {
+            MelonLogger.Msg("Archipelago UI ended");
+            processingArchiItem = false;
+            FieldManager.Instance.m_FieldPlayer.SetStateFlag(FieldPlayer.EPlayerStateFlag.DisableInput, false);
+            ProcessNextArchipelagoItem();
+        }
+
+        private static void OnArchipelagoDialogEnded(DialogGetUI dialog)
+        {
+            MelonLogger.Msg("Archipelago dialog ended");
+            
         }
 
     }
