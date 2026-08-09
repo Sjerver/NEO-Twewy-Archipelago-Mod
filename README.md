@@ -23,7 +23,7 @@ The Steam version of NEO: The World Ends with You is required in order to play t
 
 You can find the corresponding APWorld in this repository: https://github.com/Sjerver/Archipelago-NEO-TWEWY/tree/main.
 
-# Installing this Mod
+## Installing this Mod
 
 1. Download the [latest release](https://github.com/Sjerver/NEO-Twewy-Archipelago-Mod/releases) of this mod.
 2. Download MelonLoader.Installer.exe from https://github.com/LavaGang/MelonLoader/releases/latest and run it.
@@ -36,7 +36,7 @@ You can find the corresponding APWorld in this repository: https://github.com/Sj
 8. Edit `Mods/NeoTwewyArchipelago/NEOTwewyArchipelagoConfig.json` to match the Archipelago room you want to connect to.
 9. Run the game.
 
-# Using this Mod
+## Using this Mod
 1. When starting a new game, you will need to be connected to an archipelago server. If you are not connected, the game will not start.
 2. The mod will replace the rewards for the first 4 days of the game with items from your Archipelago world.
 3. After you have initially started a save file while connected to a server, it is possible to play the game without being connected to a server. 
@@ -44,8 +44,7 @@ You can find the corresponding APWorld in this repository: https://github.com/Sj
 4. If you are connected to a room, whose seed does not match the last used seed, the game won't receive items or send location checks.
    You will need to start a new game to resync the seed. The mod will warn you if this happens.
 
-# Known Issues
-- Currently, there is no way to tell which Archipelago items from other worlds you collect in game via scenario/quest rewards. It is recommended to keep an eye on the MelonLoader console while playing. 
+## Known Issues
 
 # Building this Mod
 
