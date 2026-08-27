@@ -5,8 +5,10 @@ using Il2CppMaster;
 using MelonLoader;
 using UnityEngine;
 using static Il2Cpp.ScenarioFlowComicComponent.Starter;
+using static Il2Cpp.SortWindow;
+using static Il2CppUI.Battle.BattlePauseSelectController;
 
-[assembly: MelonInfo(typeof(NEOTwewyArchipelagoMod.Core), "NEOTwewyArchipelagoMod", "1.0.0", "sjerver", null)]
+[assembly: MelonInfo(typeof(NEOTwewyArchipelagoMod.Core), "NEOTwewyArchipelagoMod", "0.0.4", "sjerver", null)]
 [assembly: MelonGame("SQUARE ENIX", "NEO: The World Ends with You")]
 
 namespace NEOTwewyArchipelagoMod
@@ -18,7 +20,10 @@ namespace NEOTwewyArchipelagoMod
         public static long ARCHIPELAGO_ITEM_ID = 5000;
 
         public static bool DEBUG = false;
-        public static bool ENEMY_HP_1 = true;
+        public static bool ENEMY_HP_1 = false;
+
+        public static bool prevent_out_of_logic = false;
+        public static int min_drop_rate = 0;
 
 
         public static KeyCode SKIP_DAY_BUTTON = KeyCode.F5;
@@ -81,6 +86,7 @@ namespace NEOTwewyArchipelagoMod
 
             //Assemble new rewards for every item so archipelago can hand them out
             ArchipelagoData.AssembleNewRewards();
+            PigLocator.Initialize();
 
             LoggerInstance.Msg("Initialized.");
         }
@@ -93,7 +99,7 @@ namespace NEOTwewyArchipelagoMod
                 _ = TryReconnect();
             }
 
-
+            
 
 
             if (syncState == SyncState.Ready)
@@ -119,7 +125,7 @@ namespace NEOTwewyArchipelagoMod
 
                     ArchipelagoLocationID aLocationID = new ArchipelagoLocationID(receivedItem.Item.LocationId);
                     LocationType type = ArchipelagoData.GetLocationType(aLocationID);
-                    GameLocationID gLocationID = (GameLocationID)ArchipelagoData.GetGameLocation(aLocationID);
+                    GameLocationID gLocationID = ArchipelagoData.GetGameLocation(aLocationID);
 
                     if (type == LocationType.ShopGood && save.TryGetShopItem(gLocationID, out ArchipelagoItem archiItem))
                     {//If the location is a shop location
@@ -133,9 +139,37 @@ namespace NEOTwewyArchipelagoMod
                         }
                     }
 
+                    if ((type == LocationType.NoiseDrop || type == LocationType.PigDrop) && save.TryGetArchipelagoItem(aLocationID, out archiItem))
+                    {
+                        AllItems itemObject = MasterDataBase<AllItems>.Get((int)archiItem.id);
+                        ItemConst.EItemType itemType = itemObject.ItemType;
+                        //MelonLogger.Msg($"{archiItem.name} at {archiItem.locationName} isBadge {itemType == ItemConst.EItemType.Badge} " +
+                            //$"count {archiItem.count} archiBadge {archiItem.id != ARCHIPELAGO_ITEM_ID} locationChecked {save.IsLocationChecked(aLocationID)}");
+                        if (itemType == ItemConst.EItemType.Badge && archiItem.id != ARCHIPELAGO_ITEM_ID && archiItem.count == 1 && save.IsLocationChecked(aLocationID))
+                        {
+                            //MelonLogger.Msg($"{archiItem.name} at {archiItem.locationName} has been gotten normally already");
+                            //Don't give the item if it is a badge, not the archipelago badge, has count 1 and has been checked already
+                            //In these cases noise / pig drops give you the item normally
+                            continue;
+                        }
+                    }
+                    if (type == LocationType.DiveReward && save.TryGetArchipelagoItem(aLocationID, out archiItem))
+                    { 
+                        MelonLogger.Msg($"{archiItem.name} at {archiItem.locationName}" +
+                            $"count {archiItem.count} archiBadge {archiItem.id != ARCHIPELAGO_ITEM_ID} locationChecked {save.IsLocationChecked(aLocationID)}");
+                        if (((archiItem.id != ARCHIPELAGO_ITEM_ID && archiItem.count == 1) || archiItem.id == NEOTwewyDataManager.DIVE_FP_ID)
+                            && save.IsLocationChecked(aLocationID))
+                        {
+                            //MelonLogger.Msg($"{archiItem.name} at {archiItem.locationName} has been gotten normally already");
+                            //Don't give the item if its not an archipelago item and count is 1 or if its FP since dive reward can give you it
+                            continue;
+                        }
+                    }
+
                     long rewardID = ArchipelagoData.ReceivableRewards[receivedItem.Item.ItemId].reward_ID;
                     int itemCount = ArchipelagoData.ReceivableRewards[receivedItem.Item.ItemId].count;
                     save.enqueueReward(new QueuedReward((int)rewardID, receivedItem.Index, itemCount));
+                    save.setLastItemIndex(Math.Max(save.getLastItemIndex(), receivedItem.Index));
                 }
             }
            
@@ -183,7 +217,6 @@ namespace NEOTwewyArchipelagoMod
                     QueuedReward rewardToTrigger = save.dequeueReward();
                     //MelonLogger.Msg(rewardToTrigger);
                     FieldManager.Instance.ReserveScenarioReward((ScenarioRewards.ELabel)rewardToTrigger.RewardID, 1);
-                    save.setLastItemIndex(Math.Max(save.getLastItemIndex(), rewardToTrigger.ItemIndex));
                     save.Save();
                 }
                 if(archiItemDisplayQueue.Count > 0 && !processingArchiItem && FieldManager.Instance.IsMoveStatus())
@@ -362,8 +395,7 @@ namespace NEOTwewyArchipelagoMod
             if (ScenarioFlagList.endOfDayFlag.ContainsKey(scenarioFlag) && value == true)
             {
                 (int day, GameLocationID rewardID) = ScenarioFlagList.endOfDayFlag[scenarioFlag];
-                ArchipelagoLocationID archipelagoLocation = (ArchipelagoLocationID)ArchipelagoData.GetArchipelagoLocation(rewardID, LocationType.ScenarioReward);
-                
+                ArchipelagoLocationID archipelagoLocation = ArchipelagoData.GetArchipelagoLocation(rewardID, LocationType.ScenarioReward);
                 //Check if custom location contains secret report, if so we want to count as one more day
                 int additionalSecretReport = 0;
                 //MelonLogger.Msg($"Location {archipelagoLocation} checked? {save.IsLocationChecked(archipelagoLocation)} -> Item? {save.TryGetScenarioRewardItem(rewardID, out ArchipelagoItem sd)} -> {sd.name}");
@@ -373,7 +405,11 @@ namespace NEOTwewyArchipelagoMod
                     if(item.IsItemFromOurSlot() &&item.name.Contains("Secret Report")){
                         additionalSecretReport = 1;
                     }
-                    
+                    if (item.id == ARCHIPELAGO_ITEM_ID && !save.IsLocationChecked(archipelagoLocation))
+                    {
+                        archiItemDisplayQueue.Enqueue(item);
+                    }
+
                 }
                 queueCustomLocation(archipelagoLocation);
                 var gameDay = SaveLoadController.Get<SaveDataField>().GetNewestDateDay();
@@ -479,7 +515,7 @@ namespace NEOTwewyArchipelagoMod
         {
             if (processingArchiItem)
                 return;
-
+            //TODO: There is split second between battle and event scene where this can trigger sadly
             if (!FieldManager.Instance.IsPromptStatus() || !FieldManager.Instance.IsMoveStatus())
                 return;
 
@@ -489,7 +525,7 @@ namespace NEOTwewyArchipelagoMod
             processingArchiItem = true;
 
             ArchipelagoItem item = archiItemDisplayQueue.Dequeue();
-            MelonLogger.Msg("Archipelago dialog open call");
+            MelonLogger.Msg($"Archipelago dialog open call for {item.name} {item.id} from {item.locationName}");
             FieldManager.Instance.m_FieldPlayer.SetStateFlag(FieldPlayer.EPlayerStateFlag.DisableInput, true);
             DialogGetUI.OpenItemGetDialog(
                 (AllItems.ELabel)item.id,
@@ -501,7 +537,7 @@ namespace NEOTwewyArchipelagoMod
 
         private static void OnArchipelagoUIEnd()
         {
-            MelonLogger.Msg("Archipelago UI ended");
+            //MelonLogger.Msg("Archipelago UI ended");
             processingArchiItem = false;
             FieldManager.Instance.m_FieldPlayer.SetStateFlag(FieldPlayer.EPlayerStateFlag.DisableInput, false);
             ProcessNextArchipelagoItem();
@@ -509,7 +545,7 @@ namespace NEOTwewyArchipelagoMod
 
         private static void OnArchipelagoDialogEnded(DialogGetUI dialog)
         {
-            MelonLogger.Msg("Archipelago dialog ended");
+            //MelonLogger.Msg("Archipelago dialog ended");
             
         }
 

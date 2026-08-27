@@ -26,9 +26,11 @@ namespace NEOTwewyArchipelagoMod
         /// <summary>
         /// Modifier applied additively to make ShopGoods ids unique in archipelago world
         /// </summary>
-        public static long SCENARIO_LOCATION_MODIFIER = 1000000;
-        public static long DIVE_LOCATION_MODIFIER = 300000;
-        public static long SHOP_LOCATION_MODIFIER = 200000;
+        public static long SCENARIO_LOCATION_MODIFIER   = 1_000_000;
+        public static long PIG_DROP_MODIFIER            = 410_000;
+        public static long NOISE_DROP_MODIFIER          = 400_000;
+        public static long DIVE_LOCATION_MODIFIER       = 300_000;
+        public static long SHOP_LOCATION_MODIFIER       = 200_000;
         
 
         public static Dictionary<SaveDataDive.EPrizeStatus, long> DIVE_RANK_MODIFIER = new()
@@ -48,6 +50,14 @@ namespace NEOTwewyArchipelagoMod
             else if (id >= SCENARIO_LOCATION_MODIFIER)
             {
                 return LocationType.ScenarioReward;
+            }
+            else if (id >= PIG_DROP_MODIFIER)
+            {
+                return LocationType.PigDrop;
+            }
+            else if (id >= NOISE_DROP_MODIFIER)
+            {
+                return LocationType.NoiseDrop;
             }
             else if (id >= DIVE_LOCATION_MODIFIER)
             {
@@ -85,6 +95,13 @@ namespace NEOTwewyArchipelagoMod
                 case LocationType.DiveReward:
                     gameID = gameID - DIVE_LOCATION_MODIFIER;
                     break;
+                case LocationType.NoiseDrop:
+                    gameID = gameID - NOISE_DROP_MODIFIER;
+                    break;
+                case LocationType.PigDrop:
+                    //gameID = gameID - PIG_DROP_MODIFIER;
+                    if (PigLocator.TryGetPigDataId(id, out GameLocationID newGameID)) return newGameID;
+                    throw new KeyNotFoundException( $"No game location mapping found for pig location {id.Value}");
                 default:
                     break;
             }
@@ -113,11 +130,19 @@ namespace NEOTwewyArchipelagoMod
                 case LocationType.DiveReward:
                     archiID = archiID + DIVE_LOCATION_MODIFIER;
                     break;
+                case LocationType.NoiseDrop:
+                    archiID = archiID + NOISE_DROP_MODIFIER;
+                    break;
+                case LocationType.PigDrop:
+                    //archiID = archiID - PIG_DROP_MODIFIER;
+                    if (PigLocator.TryGetArchiId(rawID, out ArchipelagoLocationID newArchiID)) return newArchiID;
+                    throw new KeyNotFoundException($"No game location mapping found for pig location {rawID.Value}");
                 default:
                     break;
             }
             return new ArchipelagoLocationID(archiID);
         }
+
 
 
         public static void AssembleNewRewards()
@@ -181,7 +206,10 @@ namespace NEOTwewyArchipelagoMod
         ArchipelagoReceive,
         ScenarioReward,
         ShopGood,
-        DiveReward
+        DiveReward,
+        NoiseDrop,
+        Skill,
+        PigDrop
     }
 
     [TypeConverter(typeof(GameLocationIDTypeConverter))]

@@ -42,6 +42,7 @@ namespace NEOTwewyArchipelagoMod.HarmonyPatches
                         //Add code to display something here maybe?
                     }
                     Core.syncState = SyncState.Ready;
+                    Core.save.UpdateSlotData(Core.client.LoginInfo.SlotData); 
                 }
                 else
                 {// Just start local save

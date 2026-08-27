@@ -2159,8 +2159,6 @@ namespace NEOTwewyArchipelagoMod
                 {Scenario.EName.story_w1d3_90_010_main,(3, new GameLocationID(103))},
                 {Scenario.EName.story_w1d4_90_010_main,(4, new GameLocationID(104))},
             };
-
-       
     }
     public static class CustomEventData
     {
@@ -2170,5 +2168,5 @@ namespace NEOTwewyArchipelagoMod
             { BattlePlayer.ELabel.Minamimoto, new GameLocationID(110010) }
         };
     }
-     
-    }
+
+}

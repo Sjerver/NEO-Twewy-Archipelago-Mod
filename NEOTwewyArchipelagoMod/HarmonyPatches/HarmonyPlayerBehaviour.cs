@@ -22,7 +22,15 @@ namespace NEOTwewyArchipelagoMod.HarmonyPatches
             //MelonLogger.Msg($"Member joined index {__0} and Label {__1}");
             if (CustomEventData.memberToRewardID.TryGetValue(__1, out GameLocationID rewardID))
             {
-                Core.queueCustomLocation(ArchipelagoData.GetArchipelagoLocation(rewardID, LocationType.ScenarioReward));
+                ArchipelagoLocationID location = ArchipelagoData.GetArchipelagoLocation(rewardID, LocationType.ScenarioReward);
+                if(Core.save.TryGetArchipelagoItem(location, out ArchipelagoItem item))
+                {
+                    if (item.id == Core.ARCHIPELAGO_ITEM_ID && !Core.save.IsLocationChecked(location))
+                    {
+                        Core.archiItemDisplayQueue.Enqueue(item);
+                    }
+                }
+                Core.queueCustomLocation(location);
             }
 
         }

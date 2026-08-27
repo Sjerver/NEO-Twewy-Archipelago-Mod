@@ -6,7 +6,9 @@ using Il2CppSystem.Linq;
 using JetBrains.Annotations;
 using MelonLoader;
 using MelonLoader.Utils;
+using Microsoft.VisualBasic;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -31,6 +33,21 @@ namespace NEOTwewyArchipelagoMod
                 try
                 {
                     Data = JsonConvert.DeserializeObject<ModSaveData>(json);
+                    if (Data.toggleOptions != null)
+                    {
+                        foreach(var optionEntry in Data.toggleOptions)
+                        {
+                            if (optionEntry.Key == "prevent_out_of_logic")
+                            {
+                                typeof(Core).GetField(optionEntry.Key).SetValue(null, Convert.ToBoolean(optionEntry.Value));
+                            }
+                            else if (optionEntry.Key == "min_drop_rate")
+                            {
+                                typeof(Core).GetField(optionEntry.Key).SetValue(null, Convert.ToInt32(optionEntry.Value));
+                            }
+                            MelonLogger.Msg($"{optionEntry.Key} = {typeof(Core).GetField(optionEntry.Key).GetValue(null)}");
+                        }
+                    }
                 } catch (Exception e)
                 {
                     MelonLogger.Error(e);
@@ -56,6 +73,81 @@ namespace NEOTwewyArchipelagoMod
         public string getSeed() { return Data.Seed; }
         public void setSeed(string seed) { Data.Seed = seed; Save(); }
 
+        public void UpdateSlotData(Dictionary<string, object> slotData)
+        {
+            if (Core.syncState == SyncState.WrongSeed) { return; }
+            foreach (KeyValuePair<string, object> entry in slotData)
+            {
+                if(entry.Key == "options")
+                {
+                    UpdateOptions(entry.Value);       
+                }
+                else if(entry.Key == "noise_drop_reqs")
+                {
+                   UpdateNoiseDropInfo(entry.Value);
+                }
+                else
+                {
+                    MelonLogger.Error($"Unknown slot_data {entry.Key}");
+                }
+            }
+            Save();
+        }
+
+        private void UpdateNoiseDropInfo(object value)
+        {
+            MelonLogger.Msg($"noise_drop_reqs type: {value?.GetType()}");
+            if (value is not JObject info)
+            {
+                MelonLogger.Error("Invalid noise drop data.");
+                return;
+            }
+
+            foreach (var infoEntry in info)
+            {
+                if (infoEntry.Value is not JObject dropInfo)
+                {
+                    MelonLogger.Error($"Invalid noise drop data for {infoEntry.Key}.");
+                    continue;
+                }
+
+                int minDropRate = dropInfo["min_drop_rate"]!.Value<int>();
+                bool chainable = dropInfo["chainable"]!.Value<bool>();
+                bool blueNoise = dropInfo["blue_noise"]!.Value<bool>();
+
+                Data.noise_drop_information[infoEntry.Key] =
+                    new NoiseDropInfo(minDropRate, chainable, blueNoise);
+            }
+        }
+
+        private void UpdateOptions(object value)
+        {
+            MelonLogger.Msg($"options type: {value?.GetType()}");
+            if (value is not JObject options)
+            {
+                MelonLogger.Error("Invalid options slot data.");
+                return;
+            }
+
+            foreach (var optionEntry in options)
+            { //[21:55:30.795] [NEOTwewyArchipelagoMod] optionEntry: [prevent_out_of_logic, 1] / System.Collections.Generic.KeyValuePair`2[System.String,Newtonsoft.Json.Linq.JToken]
+                //MelonLogger.Msg($"optionEntry: {optionEntry} / {optionEntry.GetType()}");
+                Data.toggleOptions[optionEntry.Key] = optionEntry.Value;
+                if(optionEntry.Key == "prevent_out_of_logic")
+                {
+                    typeof(Core).GetField(optionEntry.Key).SetValue(null, Convert.ToBoolean(optionEntry.Value));
+                } else if (optionEntry.Key == "min_drop_rate")
+                {
+                    typeof(Core).GetField(optionEntry.Key).SetValue(null, Convert.ToInt32(optionEntry.Value));
+                }
+                MelonLogger.Msg($"{optionEntry.Key} = {typeof(Core).GetField(optionEntry.Key).GetValue(null)}");
+                
+            }
+
+
+
+        }
+
         public bool getGoalAchieved(){ return Data.goalAchieved;}
         public void setGoalAchieved(bool goalAchieved) { Data.goalAchieved = goalAchieved; Save(); }
 
@@ -63,6 +155,13 @@ namespace NEOTwewyArchipelagoMod
         public void setLastItemIndex(long LastItemIndex) { Data.LastItemIndex = LastItemIndex; Save(); }
 
         public HashSet<ArchipelagoLocationID> getCheckedLocations() { return Data.checkedLocations; }
+
+        public bool TryGetNoiseDropInfo(string name, out NoiseDropInfo info)
+        {
+            return Data.noise_drop_information.TryGetValue(name, out info);
+        }
+
+        
 
         public bool TryGetArchipelagoItem(ArchipelagoLocationID locationID, out ArchipelagoItem item)
         {
@@ -76,9 +175,20 @@ namespace NEOTwewyArchipelagoMod
             else if (type == LocationType.ScenarioReward)
             {
                 return TryGetScenarioRewardItem(gameLocation, out item);
+            } else if(type == LocationType.DiveReward)
+            {
+                return TryGetDiveRewardItem(gameLocation, out item);
+            }
+            else if (type == LocationType.NoiseDrop)
+            {
+                return TryGetNoiseDropItem(gameLocation, out item);
+            }else if(type == LocationType.PigDrop)
+            {
+                return TryGetPigDrop(gameLocation, out item);
             }
 
-            item = null;
+
+                item = null;
             return false;
         }
         
@@ -91,6 +201,21 @@ namespace NEOTwewyArchipelagoMod
         {
             return Data.scenarioLocationsMapping.TryGetValue(locationID, out item);
         }
+        public bool TryGetDiveRewardItem(GameLocationID locationID, out ArchipelagoItem item)
+        {
+            return Data.diveLocationsMapping.TryGetValue(locationID, out item);
+        }
+
+        public bool TryGetNoiseDropItem(GameLocationID locationID, out ArchipelagoItem item)
+        {
+            return Data.noiseDropLocationsMapping.TryGetValue(locationID, out item);
+        }
+
+        public bool TryGetPigDrop(GameLocationID locationID, out ArchipelagoItem item)
+        {
+            return Data.pigDropLocationsMapping.TryGetValue(locationID, out item);
+        }
+
         public int getPendingLocationSize()
         {
             return Data.pendingLocations.Count;
@@ -157,6 +282,14 @@ namespace NEOTwewyArchipelagoMod
                         //if location is a normal scenario location, we need to save it in the scenario mapping
                         Data.scenarioLocationsMapping.Add(keyID.ToGameLocation(), FromScoutedItem(itemID, entry.Value));
                     }
+                    else if (entry.Key >= ArchipelagoData.PIG_DROP_MODIFIER)
+                    {
+                        Data.pigDropLocationsMapping.Add(keyID.ToGameLocation(), FromScoutedItem(itemID, entry.Value));
+                    }
+                    else if (entry.Key >= ArchipelagoData.NOISE_DROP_MODIFIER)
+                    {
+                        Data.noiseDropLocationsMapping.Add(keyID.ToGameLocation(), FromScoutedItem(itemID, entry.Value));
+                    }
                     else if (entry.Key > ArchipelagoData.DIVE_LOCATION_MODIFIER)
                     {
                         Data.diveLocationsMapping.Add(keyID.ToGameLocation(), FromScoutedItem(itemID, entry.Value));
@@ -213,6 +346,8 @@ namespace NEOTwewyArchipelagoMod
         public string Seed { get; set; }
         // We save the seed of the last connected room to indicate the save file
 
+        public Dictionary<string, object> toggleOptions { get; set; } = new();
+
         public long LastItemIndex { get; set; } = -1;
         // Remember the highest index of an item we received from the server
 
@@ -226,11 +361,23 @@ namespace NEOTwewyArchipelagoMod
         public Queue<QueuedReward> rewardQueue { get; set; } = new Queue<QueuedReward>();
         //Remember what is currently in the reward queue when the game closed
 
+        //
+        public Dictionary<string, NoiseDropInfo> noise_drop_information = new Dictionary<string, NoiseDropInfo>();
+
         //Location ID, ItemID
         public Dictionary<GameLocationID, ArchipelagoItem> scenarioLocationsMapping { get; set; } = new Dictionary<GameLocationID, ArchipelagoItem>();
         public Dictionary<GameLocationID, ArchipelagoItem> shopLocationsMapping { get; set; } = new Dictionary<GameLocationID, ArchipelagoItem>();
         public Dictionary<GameLocationID, ArchipelagoItem> diveLocationsMapping { get; set; } = new Dictionary<GameLocationID, ArchipelagoItem>();
+        public Dictionary<GameLocationID, ArchipelagoItem> noiseDropLocationsMapping { get; set; } = new Dictionary<GameLocationID, ArchipelagoItem>();
+        public Dictionary<GameLocationID, ArchipelagoItem> pigDropLocationsMapping { get; set; } = new Dictionary<GameLocationID, ArchipelagoItem>();
 
+    }
+
+    public class NoiseDropInfo(int drop_multiplier, bool chainable, bool blue_noise)
+    {
+        public int min_drop_multiplier = drop_multiplier;
+        public bool chainable = chainable;
+        public bool blue_noise = blue_noise;
     }
 
     public enum SyncState

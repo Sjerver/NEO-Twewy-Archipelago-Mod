@@ -275,8 +275,13 @@
 	<ItemGroup>
 		<Compile Include="ArchipelagoClient.cs" />
 		<Compile Include="ArchipelagoData.cs" />
+		<Compile Include="NoiseDropCalc.cs" />
+		<Compile Include="PigLocator.cs" />
+		<Compile Include="Initialization.cs" />
 		<Compile Include="Config.cs" />
 		<Compile Include="Data.cs" />
+		<Compile Include="HarmonyPatches\HarmonyReport.cs" />
+		<Compile Include="HarmonyPatches\HarmonySkillTree.cs" />
 		<Compile Include="HarmonyPatches\HarmonyPlayerBehaviour.cs" />
 		<Compile Include="HarmonyPatches\HarmonyDayBehaviour.cs" />
 		<Compile Include="HarmonyPatches\HarmonyQOL.cs" />

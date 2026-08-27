@@ -73,20 +73,26 @@ namespace NEOTwewyArchipelagoMod.HarmonyPatches
         [HarmonyPatch("OpenItemGetDialog")]
         public static void PreItemGetDialog(AllItems.ELabel itemID, ref int num, Il2CppSystem.Action onUIEndEvent, Il2CppSystem.Action<DialogGetUI> onEnded) 
         {
-            if (num < 0 && (long)itemID == Core.ARCHIPELAGO_ITEM_ID) 
+            if (num < 0) //&& (long)itemID == Core.ARCHIPELAGO_ITEM_ID
             {
                 //MelonLogger.Msg($"Received location {-(num)} as Archipelago Item dialogue");  
                 ArchipelagoLocationID locationID = new ArchipelagoLocationID(-(num)); 
                 if (Core.save.TryGetArchipelagoItem(locationID, out ArchipelagoItem item)) 
                 { 
-                    //MelonLogger.Msg("Storing item as current"); 
+                    //MelonLogger.Msg($"Storing item {item.name} ({item.id}) as current"); 
                     currentItem = item; 
                 } else { 
                     currentItem = null; 
                 }
                 num = 1;
-            } 
+            } else
+            {
+                //MelonLogger.Msg($"{itemID} and {num} with {onUIEndEvent.Method.Name} and {onEnded.Method.Name}");
+                //MelonLogger.Msg($"onUIEndEvent declaring type: {onUIEndEvent.Method.DeclaringType}");
+                //MelonLogger.Msg($"onEnded declaring type: {onEnded.Method.DeclaringType}");
+            }
         }
+
         [HarmonyPostfix]
         [HarmonyPatch("Initialize")]
         public static void PostInitialize(DialogGetUI __instance) 

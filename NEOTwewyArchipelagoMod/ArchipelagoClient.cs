@@ -13,7 +13,7 @@ using System.Threading.Tasks;
 
 namespace NEOTwewyArchipelagoMod
 {
-    public  class ArchipelagoClient
+    public class ArchipelagoClient
     {
         public ArchipelagoSession session;
 
@@ -76,7 +76,7 @@ namespace NEOTwewyArchipelagoMod
                     MelonLogger.Msg("Connected!");
                 }
             }
-            catch (Exception e)
+            catch
             {
                 //MelonLogger.Error(e);
                 IsConnected = false;
@@ -86,7 +86,6 @@ namespace NEOTwewyArchipelagoMod
         private void Connect(string server, string user, string pass)
         {
             LoginResult result;
-
             try
             {
                 // handle TryConnectAndLogin attempt here and save the returned object to `result`

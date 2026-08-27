@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using static Il2CppMaster.Ability;
 
 namespace NEOTwewyArchipelagoMod.HarmonyPatches
 {
@@ -47,38 +48,6 @@ namespace NEOTwewyArchipelagoMod.HarmonyPatches
                 JObject root = JObject.Parse(__result);
 
                 JArray targets = (JArray)root["mTarget"];
-
-
-                //MelonLogger.Msg($"Edit existing rewards");
-                ////RewardID, ItemID
-                //foreach (KeyValuePair<long, long> entry in ArchipelagoData.ScenarioRewardsDict)
-                //{
-                //    long scenarioId = entry.Key;
-                //    long itemId = entry.Value;
-
-                //    JObject target = targets.OfType<JObject>()
-                //        .FirstOrDefault(t => (long)t["mId"] == scenarioId);
-
-                //    if (target != null)
-                //    {
-                //        //MelonLogger.Msg($"{scenarioId}");
-                //        target["mReward1st"] = itemId;
-                //    }
-                //    else
-                //    {
-                //        //MelonLogger.Msg($"{scenarioId}");
-                //        targets.Add(new JObject
-                //        {
-                //            ["mId"] = scenarioId,
-                //            ["mReward1st"] = itemId,
-                //            ["mReward1stCount"] = 1,
-                //            ["mReward2nd"] = -1,
-                //            ["mReward2ndCount"] = 0,
-                //            ["mSaveIndex"] = 251
-                //        });
-                //    }
-                //}
-
 
                 //MelonLogger.Msg($"Add rewards to receive from Archipelago");
                 //itemID, RewardID
@@ -126,7 +95,7 @@ namespace NEOTwewyArchipelagoMod.HarmonyPatches
 
                 if (Core.DEBUG || Core.ENEMY_HP_1)
                 {
-                    MelonLogger.MsgDirect(MelonLoader.Logging.ColorARGB.Crimson,"Set Enemy HP to 1");
+                    MelonLogger.MsgDirect(MelonLoader.Logging.ColorARGB.Crimson, "Set Enemy HP to 1");
                     for (int i = 0; i < targets.Count; i++)
                     {
                         if (targets[i]["mId"] == null)
@@ -152,13 +121,14 @@ namespace NEOTwewyArchipelagoMod.HarmonyPatches
             {
                 //MelonLogger.Msg("Editing Badges");
 
-                //JObject root = JObject.Parse(__result);
+                JObject root = JObject.Parse(__result);
 
-                //JArray targets = (JArray)root["mTarget"];
+                JArray targets = (JArray)root["mTarget"];
 
-                //targets[312]["mBadgeCategory"] = (int)ItemConst.EBadgeCategoryType.Material;
+                //Edit monetary value of Archipelago Pin
+                targets[312]["mSellPrice"] = (int)1000;
 
-                //__result = root.ToString();
+                __result = root.ToString();
 
                 //    MelonLogger.Msg($"Badge count: {targets.Count}");
             }
@@ -240,6 +210,23 @@ namespace NEOTwewyArchipelagoMod.HarmonyPatches
                 //    }
 
                 //    __result = root.ToString();
+            }
+            else if (assetName.Contains("Costume.txt"))
+            {
+                List<string> DROP_ABILITIES = ["140", "141", "142", "143", "144", "145", "146", "147", "148", "149", "150", "151"];
+
+                JObject root = JObject.Parse(__result);
+                JArray targets = (JArray)root["mTarget"];
+                for (int i = 0; i < targets.Count; i++)
+                {
+                    if (DROP_ABILITIES.Contains(targets[i]["mAbility"].ToString()))
+                    {
+                        Random rnd = new Random();
+                        int styleValue = rnd.Next(25, 50);
+                        targets[i]["mOpenSense"] = styleValue.ToString();
+                    }
+                }
+                __result = root.ToString();
             }
             return;
         }

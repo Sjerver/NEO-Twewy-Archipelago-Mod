@@ -1,4 +1,6 @@
-﻿using System;
+﻿using Il2Cpp;
+using MelonLoader;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -6,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace NEOTwewyArchipelagoMod
 {
-   
+
 
     public static class NEOTwewyDataManager
     {
@@ -23,6 +25,8 @@ namespace NEOTwewyArchipelagoMod
             5109,    //Dibaryon
             5110,    //Sfermion
             ]);
+
+        public static long DIVE_FP_ID = 30000; //FP_ITEM_ID
 
         //List of all items we can get from Archipelago that belong to our game
         public static Dictionary<String, NEOTwewyItemData> item_data = new() {
@@ -359,7 +363,7 @@ namespace NEOTwewyArchipelagoMod
             {"Dilaton", new NEOTwewyItemData(5108,5108)},
             {"Dibaryon", new NEOTwewyItemData(5109,5109)},
             {"Sfermion", new NEOTwewyItemData(5110,5110)},
-            {"Legendary Headphones", new NEOTwewyItemData(10000,10000)},
+            {"Legendary Headphones", new NEOTwewyItemData(10000,10000, drop_rate: 5)},
             {"Legendary Tank Top", new NEOTwewyItemData(10001,10001)},
             {"Legendary Shorts", new NEOTwewyItemData(10002,10002)},
             {"Legendary Sneakers", new NEOTwewyItemData(10003,10003)},
@@ -427,7 +431,7 @@ namespace NEOTwewyArchipelagoMod
             {"Peach Blossom", new NEOTwewyItemData(10400,10400)},
             {"Iberis", new NEOTwewyItemData(10401,10401)},
             {"Scarlet Sage", new NEOTwewyItemData(10402,10402)},
-            {"Viola", new NEOTwewyItemData(10403,10403)},
+            {"Viola", new NEOTwewyItemData(10403,10403, drop_rate: 1)},
             {"Black Lily", new NEOTwewyItemData(10404,10404)},
             {"Baby's Breath", new NEOTwewyItemData(10405,10405)},
             {"Calla Lily", new NEOTwewyItemData(10406,10406)},
@@ -444,8 +448,8 @@ namespace NEOTwewyArchipelagoMod
             {"Anthurium", new NEOTwewyItemData(10417,10417)},
             {"Peony", new NEOTwewyItemData(10418,10418)},
             {"Blue Rose", new NEOTwewyItemData(10419,10419)},
-            {"Baby Rose", new NEOTwewyItemData(10420,10420)},
-            {"Black Rose", new NEOTwewyItemData(10421,10421)},
+            {"Baby Rose", new NEOTwewyItemData(10420,10420, drop_rate: 15)},
+            {"Black Rose", new NEOTwewyItemData(10421,10421, drop_rate: 20)},
             {"Raven Blossom", new NEOTwewyItemData(10500,10500)},
             {"Hollyhock Blossom", new NEOTwewyItemData(10501,10501)},
             {"Cornflower Hemp", new NEOTwewyItemData(10502,10502)},
@@ -461,9 +465,9 @@ namespace NEOTwewyArchipelagoMod
             {"Violet-Ebony Foxglove", new NEOTwewyItemData(10512,10512)},
             {"Crimson Sand Blossom", new NEOTwewyItemData(10513,10513)},
             {"Maiden Blossom", new NEOTwewyItemData(10514,10514)},
-            {"Gilded Bamboo", new NEOTwewyItemData(10515,10515)},
+            {"Gilded Bamboo", new NEOTwewyItemData(10515,10515, drop_rate: 5)},
             {"Flaming Blossom", new NEOTwewyItemData(10516,10516)},
-            {"Oversized Beanie", new NEOTwewyItemData(10600,10600)},
+            {"Oversized Beanie", new NEOTwewyItemData(10600,10600, drop_rate: 1)},
             {"Cloth Headband", new NEOTwewyItemData(10601,10601)},
             {"Turquoise Headband", new NEOTwewyItemData(10602,10602)},
             {"Bohemian T-Shirt", new NEOTwewyItemData(10603,10603)},
@@ -482,9 +486,9 @@ namespace NEOTwewyArchipelagoMod
             {"Moccasin Boots", new NEOTwewyItemData(10616,10616)},
             {"Turquoise Necklace", new NEOTwewyItemData(10617,10617)},
             {"Turquoise Bracelet", new NEOTwewyItemData(10618,10618)},
-            {"Hippie Shoulder Bag", new NEOTwewyItemData(10619,10619)},
+            {"Hippie Shoulder Bag", new NEOTwewyItemData(10619,10619, drop_rate: 5)},
             {"Compagno", new NEOTwewyItemData(10700,10700)},
-            {"Galassia", new NEOTwewyItemData(10701,10701)},
+            {"Galassia", new NEOTwewyItemData(10701,10701, drop_rate: 3)},
             {"Bellezza suprema", new NEOTwewyItemData(10702,10702)},
             {"Onore", new NEOTwewyItemData(10703,10703)},
             {"Tradizione", new NEOTwewyItemData(10704,10704)},
@@ -494,12 +498,12 @@ namespace NEOTwewyArchipelagoMod
             {"Notte romantica", new NEOTwewyItemData(10708,10708)},
             {"Futuro", new NEOTwewyItemData(10709,10709)},
             {"Infinito", new NEOTwewyItemData(10710,10710)},
-            {"Sentiero", new NEOTwewyItemData(10711,10711)},
+            {"Sentiero", new NEOTwewyItemData(10711,10711, drop_rate: 5)},
             {"Vacanza", new NEOTwewyItemData(10712,10712)},
             {"Denaro e potere", new NEOTwewyItemData(10713,10713)},
             {"Amore e desiderio", new NEOTwewyItemData(10714,10714)},
             {"Pigliatutto", new NEOTwewyItemData(10715,10715)},
-            {"Fiore di cristallo", new NEOTwewyItemData(10716,10716)},
+            {"Fiore di cristallo", new NEOTwewyItemData(10716,10716, drop_rate: 5)},
             {"Bucket Hat", new NEOTwewyItemData(10800,10800)},
             {"Hair Brooch", new NEOTwewyItemData(10801,10801)},
             {"Sheepy T-Shirt", new NEOTwewyItemData(10802,10802)},
@@ -515,7 +519,7 @@ namespace NEOTwewyArchipelagoMod
             {"Strapped Pumps", new NEOTwewyItemData(10812,10812)},
             {"Slip-ons", new NEOTwewyItemData(10813,10813)},
             {"Formal Bag", new NEOTwewyItemData(10814,10814)},
-            {"Wool Scarf", new NEOTwewyItemData(10815,10815)},
+            {"Wool Scarf", new NEOTwewyItemData(10815,10815, drop_rate: 5)},
             {"Waterproof Hat", new NEOTwewyItemData(10900,10900)},
             {"Peacock Cap", new NEOTwewyItemData(10901,10901)},
             {"Bodhidharma Tank Top", new NEOTwewyItemData(10902,10902)},
@@ -549,9 +553,9 @@ namespace NEOTwewyArchipelagoMod
             {"Sneaker Boots", new NEOTwewyItemData(11012,11012)},
             {"Monochrome Watch", new NEOTwewyItemData(11013,11013)},
             {"Dog Tags", new NEOTwewyItemData(11014,11014)},
-            {"Sling Bag", new NEOTwewyItemData(11015,11015)},
+            {"Sling Bag", new NEOTwewyItemData(11015,11015, drop_rate: 5)},
             {"Mask", new NEOTwewyItemData(11016,11016)},
-            {"High-Class Hat", new NEOTwewyItemData(11100,11100)},
+            {"High-Class Hat", new NEOTwewyItemData(11100,11100, drop_rate: 3)},
             {"Straw Hat", new NEOTwewyItemData(11101,11101)},
             {"Cute Camisole", new NEOTwewyItemData(11102,11102)},
             {"Crossover Cardigan", new NEOTwewyItemData(11103,11103)},
@@ -573,7 +577,7 @@ namespace NEOTwewyArchipelagoMod
             {"Knit Tie", new NEOTwewyItemData(11119,11119)},
             {"Flat-Brim Snapback", new NEOTwewyItemData(11200,11200)},
             {"Baseball Cap", new NEOTwewyItemData(11201,11201)},
-            {"Faux-Vintage Beanie", new NEOTwewyItemData(11202,11202)},
+            {"Faux-Vintage Beanie", new NEOTwewyItemData(11202,11202, drop_rate: 5)},
             {"Wired Hairband", new NEOTwewyItemData(11203,11203)},
             {"Down Vest", new NEOTwewyItemData(11204,11204)},
             {"Pullover Hoodie", new NEOTwewyItemData(11205,11205)},
@@ -624,7 +628,7 @@ namespace NEOTwewyArchipelagoMod
             {"Ninja Costume", new NEOTwewyItemData(11408,11408)},
             {"Stilts", new NEOTwewyItemData(11409,11409)},
             {"Roller Skates", new NEOTwewyItemData(11410,11410)},
-            {"Half-Hearted Summer Gift", new NEOTwewyItemData(11411,11411)},
+            {"Half-Hearted Summer Gift", new NEOTwewyItemData(11411,11411, drop_rate: 5)},
             {"Schnoz Spectacles", new NEOTwewyItemData(11412,11412)},
             {"Tomonami's Blade", new NEOTwewyItemData(11413,11413)},
             {"B.H.C.C Panama Hat", new NEOTwewyItemData(11500,11500)},
@@ -895,14 +899,45 @@ namespace NEOTwewyArchipelagoMod
             {"3x Rare Metal", new NEOTwewyItemData(33002,5101, 3)},
             {"3x Tektite", new NEOTwewyItemData(33003,5102, 3)},
             {"2 FP", new NEOTwewyItemData(33004,30000, 2)},
+
+        };
+
+        public static Dictionary<int, int> EXPECTED_LEVEL_PER_REGION = new(){
+            { 0, 1 },
+            { 1, 2 },
+            {2, 4 },
+            {3, 7 },
+            {4, 9 },
+            {5, 14 },
+            {6, 20 },
+            {7, 25 },
+            {8, 26 },
+            {9, 27 },
+            {10, 29 },
+            {11, 32 },
+            {12, 34 },
+            {13, 35 },
+            {14, 36 },
+            {15, 37 },
+            {16, 38 },
+            {17, 40 },
+            {18, 45 },
+            {19, 47 },
+            {20, 50 },
+            {21, 53 },
+            {22, 53 },
+            {23, 53 },
+            {24, 80 },
         };
     }
 
-    public class NEOTwewyItemData(int archi_id, int game_id, int count = 1)
+    public class NEOTwewyItemData(int archi_id, int game_id, int count = 1, int drop_rate = 0)
     {
         public int id = game_id;
         public int arch_id = archi_id;
         public int count = count;
         public int reward_ID = 0;
+        public int drop_rate = drop_rate;
     }
+
 }

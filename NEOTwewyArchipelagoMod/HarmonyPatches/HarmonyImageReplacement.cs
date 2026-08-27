@@ -15,23 +15,21 @@ namespace NEOTwewyArchipelagoMod.HarmonyPatches
     [HarmonyPatch(typeof(UISpriteBank), nameof(UISpriteBank.GetSprite))]
     public static class UISpriteBankPatch
     {
-        //TODO: Potentially update to replace the sprite one time
         public static void Postfix(ref string atlasPath, ref string spriteName,ref Sprite __result)
         {
             if(spriteName == "bad_99_00_00")
             { //Originally "bad_99_00_00" is the 1 Yen Pin
-                byte[] data = File.ReadAllBytes("Mods/NeoTwewyArchipelago/Resources/archi_pin.png");
+                byte[] archi_data = File.ReadAllBytes("Mods/NeoTwewyArchipelago/Resources/archi_pin.png");
 
-                Texture2D tex = new Texture2D(2, 2);
-                ImageConversion.LoadImage(tex, data);
+                Texture2D archi_tex = new Texture2D(2, 2);
+                ImageConversion.LoadImage(archi_tex, archi_data);
 
-                Sprite sprite = Sprite.Create(
-                    tex,
-                    new Rect(0, 0, tex.width, tex.height),
+                Sprite archi_sprite = Sprite.Create(
+                    archi_tex,
+                    new Rect(0, 0, archi_tex.width, archi_tex.height),
                     new Vector2(0.5f, 0.5f)
                 );
-
-                __result = sprite;
+                __result = archi_sprite;
             }
             
         }
