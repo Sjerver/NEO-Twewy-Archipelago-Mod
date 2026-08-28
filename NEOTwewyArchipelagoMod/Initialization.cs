@@ -18,6 +18,13 @@ namespace NEOTwewyArchipelagoMod
 
         public static bool isSynced() { return Core.syncState != SyncState.WrongSeed; }
 
+        public static void InitializeAll()
+        {
+            InitializeNoiseDrops();
+            InitializeShopGoods();
+            InitializePigDrops();
+        }
+
         public static void InitializeNoiseDrops()
         {
             if (!__noiseDropInitialized && isSynced())
@@ -138,7 +145,7 @@ namespace NEOTwewyArchipelagoMod
             }
         }
 
-        public static void InitalizePigDrops()
+        public static void InitializePigDrops()
         {
             if (__pigInitialized || !isSynced())
                 return;

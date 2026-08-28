@@ -294,7 +294,7 @@ namespace NEOTwewyArchipelagoMod
                     Scenario.EName.story_w1d4_03_050_mission,
                     Scenario.EName.story_w1d4_04_010_main,
                     Scenario.EName.story_w1d4_90_010_main,
-                    Scenario.EName.story_w1d4_end_010_Movie,
+                    //Scenario.EName.story_w1d4_end_010_Movie,
                 }
             }
             };

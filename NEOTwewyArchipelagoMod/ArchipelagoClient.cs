@@ -2,6 +2,7 @@
 using Archipelago.MultiClient.Net.Enums;
 using Archipelago.MultiClient.Net.Helpers;
 using Archipelago.MultiClient.Net.MessageLog.Messages;
+using Archipelago.MultiClient.Net.MessageLog.Parts;
 using Archipelago.MultiClient.Net.Models;
 using Il2Cpp;
 using MelonLoader;
@@ -160,7 +161,7 @@ namespace NEOTwewyArchipelagoMod
 
         private void OnMessageReceived(LogMessage message)
         {
-            MelonLogger.MsgDirect(MelonLoader.Logging.ColorARGB.Cyan,$"[Archipelago] {message}");
+            MelonLogger.MsgDirect(MelonLoader.Logging.ColorARGB.Gold, $"[Archipelago] {message}");
         }
     }
 

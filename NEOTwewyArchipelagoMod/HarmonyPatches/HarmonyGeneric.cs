@@ -25,6 +25,7 @@ namespace NEOTwewyArchipelagoMod.HarmonyPatches
     {
         public static bool Prefix(Vector2Int index)
         {
+            Initialization.InitializeAll();
             if (index.x == 0 && index.y == 1)
             {//New Game Button
                 if (!Core.client.IsConnected)

@@ -131,7 +131,7 @@ namespace NEOTwewyArchipelagoMod.HarmonyPatches
         [HarmonyPatch("SetDropPig")]
         public static void PreSetDropPig(EnemyBase enemy, DifficultyLevel.ELabel dropDifficulty,ref Badge.ELabel badge)
         {
-            Initialization.InitalizePigDrops();
+            Initialization.InitializePigDrops();
             
             //MelonLogger.Msg($"Pig ID : {PigManager.PigManagerInstance.Pigdata.Id} Pig Drop: {PigManager.PigManagerInstance.Pigdata.Drop}");
             PigData pigData = MasterDataBase<PigData>.Get((int)PigManager.PigManagerInstance.Pigdata.Id);
