@@ -127,43 +127,47 @@ namespace NEOTwewyArchipelagoMod
                     LocationType type = ArchipelagoData.GetLocationType(aLocationID);
                     GameLocationID gLocationID = ArchipelagoData.GetGameLocation(aLocationID);
 
-                    if (type == LocationType.ShopGood && save.TryGetShopItem(gLocationID, out ArchipelagoItem archiItem))
-                    {//If the location is a shop location
-                        //int goodID = (int)archiItem.locationID - (int)NEOConstants.shopLocationIDModifier;
-                        //int purchaseCount = SaveLoadController.Get<SaveDataShop>().GetShopGoodsPurchases((ShopGoods.ELabel)goodID);
-
-                        if (!NEOTwewyDataManager.NON_SHOP_ITEMS.Contains(archiItem.id) && save.IsLocationChecked(aLocationID))
-                        {
-                            //Don't give the item if the shop can give you the item normally and the location has been checked
-                            continue;
-                        }
-                    }
-
-                    if ((type == LocationType.NoiseDrop || type == LocationType.PigDrop) && save.TryGetArchipelagoItem(aLocationID, out archiItem))
+                    if(save.TryGetArchipelagoItem(aLocationID, out ArchipelagoItem archiItem))
                     {
-                        AllItems itemObject = MasterDataBase<AllItems>.Get((int)archiItem.id);
-                        ItemConst.EItemType itemType = itemObject.ItemType;
-                        //MelonLogger.Msg($"{archiItem.name} at {archiItem.locationName} isBadge {itemType == ItemConst.EItemType.Badge} " +
+                        if (type == LocationType.ShopGood)
+                        {//If the location is a shop location
+                         //int goodID = (int)archiItem.locationID - (int)NEOConstants.shopLocationIDModifier;
+                         //int purchaseCount = SaveLoadController.Get<SaveDataShop>().GetShopGoodsPurchases((ShopGoods.ELabel)goodID);
+
+                            if (!NEOTwewyDataManager.NON_SHOP_ITEMS.Contains(archiItem.id) && save.IsLocationChecked(aLocationID))
+                            {
+                                //Don't give the item if the shop can give you the item normally and the location has been checked
+                                continue;
+                            }
+                        }
+
+                        if ((type == LocationType.NoiseDrop || type == LocationType.PigDrop))
+                        {
+                            AllItems itemObject = MasterDataBase<AllItems>.Get((int)archiItem.id);
+                            ItemConst.EItemType itemType = itemObject.ItemType;
+                            //MelonLogger.Msg($"{archiItem.name} at {archiItem.locationName} isBadge {itemType == ItemConst.EItemType.Badge} " +
                             //$"count {archiItem.count} archiBadge {archiItem.id != ARCHIPELAGO_ITEM_ID} locationChecked {save.IsLocationChecked(aLocationID)}");
-                        if (itemType == ItemConst.EItemType.Badge && archiItem.id != ARCHIPELAGO_ITEM_ID && archiItem.count == 1 && save.IsLocationChecked(aLocationID))
-                        {
-                            //MelonLogger.Msg($"{archiItem.name} at {archiItem.locationName} has been gotten normally already");
-                            //Don't give the item if it is a badge, not the archipelago badge, has count 1 and has been checked already
-                            //In these cases noise / pig drops give you the item normally
-                            continue;
+                            if (itemType == ItemConst.EItemType.Badge && archiItem.id != ARCHIPELAGO_ITEM_ID && archiItem.count == 1 && save.IsLocationChecked(aLocationID))
+                            {
+                                //MelonLogger.Msg($"{archiItem.name} at {archiItem.locationName} has been gotten normally already");
+                                //Don't give the item if it is a badge, not the archipelago badge, has count 1 and has been checked already
+                                //In these cases noise / pig drops give you the item normally
+                                continue;
+                            }
                         }
-                    }
-                    if (type == LocationType.DiveReward && save.TryGetArchipelagoItem(aLocationID, out archiItem))
-                    { 
-                        MelonLogger.Msg($"{archiItem.name} at {archiItem.locationName}" +
-                            $"count {archiItem.count} archiBadge {archiItem.id != ARCHIPELAGO_ITEM_ID} locationChecked {save.IsLocationChecked(aLocationID)}");
-                        if (((archiItem.id != ARCHIPELAGO_ITEM_ID && archiItem.count == 1) || archiItem.id == NEOTwewyDataManager.DIVE_FP_ID)
-                            && save.IsLocationChecked(aLocationID))
+                        if (type == LocationType.DiveReward)
                         {
-                            //MelonLogger.Msg($"{archiItem.name} at {archiItem.locationName} has been gotten normally already");
-                            //Don't give the item if its not an archipelago item and count is 1 or if its FP since dive reward can give you it
-                            continue;
+                            MelonLogger.Msg($"{archiItem.name} at {archiItem.locationName}" +
+                                $"count {archiItem.count} archiBadge {archiItem.id != ARCHIPELAGO_ITEM_ID} locationChecked {save.IsLocationChecked(aLocationID)}");
+                            if (((archiItem.id != ARCHIPELAGO_ITEM_ID && archiItem.count == 1) || archiItem.id == NEOTwewyDataManager.DIVE_FP_ID)
+                                && save.IsLocationChecked(aLocationID))
+                            {
+                                //MelonLogger.Msg($"{archiItem.name} at {archiItem.locationName} has been gotten normally already");
+                                //Don't give the item if its not an archipelago item and count is 1 or if its FP since dive reward can give you it
+                                continue;
+                            }
                         }
+
                     }
 
                     long rewardID = ArchipelagoData.ReceivableRewards[receivedItem.Item.ItemId].reward_ID;
@@ -179,7 +183,7 @@ namespace NEOTwewyArchipelagoMod
             { //Only if the battle scene is not loaded and the field scene is loaded
 
 
-                if (!initalized)
+                if (!initalized && syncState != SyncState.WrongSeed)
                 {//Initialize Values on Load/ Start Save
                     initalized = true;
 
@@ -399,11 +403,12 @@ namespace NEOTwewyArchipelagoMod
                 //Check if custom location contains secret report, if so we want to count as one more day
                 int additionalSecretReport = 0;
                 //MelonLogger.Msg($"Location {archipelagoLocation} checked? {save.IsLocationChecked(archipelagoLocation)} -> Item? {save.TryGetScenarioRewardItem(rewardID, out ArchipelagoItem sd)} -> {sd.name}");
-                if (!save.IsLocationChecked(archipelagoLocation) && save.TryGetScenarioRewardItem(rewardID,out ArchipelagoItem item))
+                if (!save.IsLocationChecked(archipelagoLocation) && save.TryGetArchipelagoItem(archipelagoLocation, out ArchipelagoItem item))
                 {
                    //MelonLogger.Msg($"Reward 1st Time {item.IsItemFromOurSlot()} && {item.name} && {item.name.Contains("Secret Report")}");
-                    if(item.IsItemFromOurSlot() &&item.name.Contains("Secret Report")){
-                        additionalSecretReport = 1;
+                    if(item.IsItemFromOurSlot() &&item.name.Contains("Secret Report No.")){
+                        additionalSecretReport += 1;
+                        //MelonLogger.Msg("Manual secret report count in chapter end");
                     }
                     if (item.id == ARCHIPELAGO_ITEM_ID && !save.IsLocationChecked(archipelagoLocation))
                     {
@@ -414,6 +419,8 @@ namespace NEOTwewyArchipelagoMod
                 queueCustomLocation(archipelagoLocation);
                 var gameDay = SaveLoadController.Get<SaveDataField>().GetNewestDateDay();
                 int collectedSecretReports = CountSecretReports() + additionalSecretReport;
+                //additionalSecretReport = 0;
+                //MelonLogger.Msg("Manual reset of secret report count in chapter end");
                 MelonLogger.Msg($"End Day {gameDay} with {collectedSecretReports} Reports and furthest day {furthestDayReached}");
                 if(gameDay <= collectedSecretReports && gameDay == furthestDayReached)
                 {

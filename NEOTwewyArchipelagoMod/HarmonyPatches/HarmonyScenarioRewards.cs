@@ -30,7 +30,7 @@ namespace NEOTwewyArchipelagoMod.HarmonyPatches
                 Core.save.addCheckedLocation(locationID);
 
 
-                if (Core.save.TryGetScenarioRewardItem(rewardID, out ArchipelagoItem item))
+                if (Core.save.TryGetArchipelagoItem(locationID, out ArchipelagoItem item))
                 { 
                     if (item.id == Core.ARCHIPELAGO_ITEM_ID)
                     { //If the item is an archipelago item, we get from a vanilla reward. We want to still get a pop-up for what item we are sending

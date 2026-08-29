@@ -85,7 +85,7 @@ namespace NEOTwewyArchipelagoMod
             foreach (ShopGoods good in goods)
             {
                 GameLocationID gameLocationID = new GameLocationID(good.mId);
-                if (Core.save.TryGetShopItem(gameLocationID, out ArchipelagoItem archiItem))
+                if (Core.save.TryGetArchipelagoItem(gameLocationID.ToArchipelagoLocation(LocationType.ShopGood), out ArchipelagoItem archiItem))
                 {//If the shop good is an location
                     if (Core.DEBUG) { MelonLogger.Msg($"At {archiItem.locationName} replaced {good.mItem} with {archiItem.name} "); }
                     if (NEOTwewyDataManager.NON_SHOP_ITEMS.Contains(archiItem.id))
@@ -159,7 +159,16 @@ namespace NEOTwewyArchipelagoMod
                 //MelonLogger.Msg($"gameID {pigData.mId}");
                 GameLocationID gameLocationID = new GameLocationID(pigData.mId);
 
-                if (Core.save.TryGetPigDrop(gameLocationID, out ArchipelagoItem item))
+                ArchipelagoLocationID archipelagoLocationId;
+                try
+                {
+                    archipelagoLocationId =  gameLocationID.ToArchipelagoLocation(LocationType.PigDrop);
+                } catch (Exception e)
+                {
+                    continue;
+                }
+
+                if (Core.save.TryGetArchipelagoItem(archipelagoLocationId, out ArchipelagoItem item))
                 {
                     //MelonLogger.Msg($"gameID {gameLocationID} archiID {item.locationID} newItem {item.name}");
 

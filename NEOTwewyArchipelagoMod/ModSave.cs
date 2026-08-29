@@ -115,7 +115,7 @@ namespace NEOTwewyArchipelagoMod
                 bool chainable = dropInfo["chainable"]!.Value<bool>();
                 bool blueNoise = dropInfo["blue_noise"]!.Value<bool>();
 
-                Data.noise_drop_information[infoEntry.Key] =
+                Data.noiseDropInformation[infoEntry.Key] =
                     new NoiseDropInfo(minDropRate, chainable, blueNoise);
             }
         }
@@ -158,7 +158,7 @@ namespace NEOTwewyArchipelagoMod
 
         public bool TryGetNoiseDropInfo(string name, out NoiseDropInfo info)
         {
-            return Data.noise_drop_information.TryGetValue(name, out info);
+            return Data.noiseDropInformation.TryGetValue(name, out info);
         }
 
         
@@ -167,53 +167,8 @@ namespace NEOTwewyArchipelagoMod
         {
             GameLocationID gameLocation = locationID.ToGameLocation();
             LocationType type = locationID.GetLocationType();
-            
-            if (type == LocationType.ShopGood)
-            {
-                return TryGetShopItem(gameLocation, out item);
-            }
-            else if (type == LocationType.ScenarioReward)
-            {
-                return TryGetScenarioRewardItem(gameLocation, out item);
-            } else if(type == LocationType.DiveReward)
-            {
-                return TryGetDiveRewardItem(gameLocation, out item);
-            }
-            else if (type == LocationType.NoiseDrop)
-            {
-                return TryGetNoiseDropItem(gameLocation, out item);
-            }else if(type == LocationType.PigDrop)
-            {
-                return TryGetPigDrop(gameLocation, out item);
-            }
 
-
-                item = null;
-            return false;
-        }
-        
-        public bool TryGetShopItem(GameLocationID locationID, out ArchipelagoItem item)
-        {
-            return Data.shopLocationsMapping.TryGetValue(locationID, out item);
-        }
-
-        public bool TryGetScenarioRewardItem(GameLocationID locationID, out ArchipelagoItem item)
-        {
-            return Data.scenarioLocationsMapping.TryGetValue(locationID, out item);
-        }
-        public bool TryGetDiveRewardItem(GameLocationID locationID, out ArchipelagoItem item)
-        {
-            return Data.diveLocationsMapping.TryGetValue(locationID, out item);
-        }
-
-        public bool TryGetNoiseDropItem(GameLocationID locationID, out ArchipelagoItem item)
-        {
-            return Data.noiseDropLocationsMapping.TryGetValue(locationID, out item);
-        }
-
-        public bool TryGetPigDrop(GameLocationID locationID, out ArchipelagoItem item)
-        {
-            return Data.pigDropLocationsMapping.TryGetValue(locationID, out item);
+            return Data.locationMappings[type].TryGetValue(gameLocation, out item);
         }
 
         public int getPendingLocationSize()
@@ -276,32 +231,13 @@ namespace NEOTwewyArchipelagoMod
                         //Data.scenarioLocationsMapping.Add(entry.Key, FromScoutedItem( entry.Value));
                     }
                     ArchipelagoLocationID keyID = new ArchipelagoLocationID(entry.Key);
+                    LocationType locType = keyID.GetLocationType();
                     //MelonLogger.Msg($"Location {entry.Value.LocationDisplayName} ({entry.Key}) has {entry.Value.ItemName} ({entry.Value.ItemId})");
-                    if(entry.Key > ArchipelagoData.SCENARIO_LOCATION_MODIFIER)
+                    if(locType != LocationType.Vanilla && locType != LocationType.ArchipelagoReceive)
                     {
-                        //if location is a normal scenario location, we need to save it in the scenario mapping
-                        Data.scenarioLocationsMapping.Add(keyID.ToGameLocation(), FromScoutedItem(itemID, entry.Value));
+                        Data.locationMappings[locType].Add(keyID.ToGameLocation(), FromScoutedItem(itemID, entry.Value));
                     }
-                    else if (entry.Key >= ArchipelagoData.PIG_DROP_MODIFIER)
-                    {
-                        Data.pigDropLocationsMapping.Add(keyID.ToGameLocation(), FromScoutedItem(itemID, entry.Value));
-                    }
-                    else if (entry.Key >= ArchipelagoData.NOISE_DROP_MODIFIER)
-                    {
-                        Data.noiseDropLocationsMapping.Add(keyID.ToGameLocation(), FromScoutedItem(itemID, entry.Value));
-                    }
-                    else if (entry.Key > ArchipelagoData.DIVE_LOCATION_MODIFIER)
-                    {
-                        Data.diveLocationsMapping.Add(keyID.ToGameLocation(), FromScoutedItem(itemID, entry.Value));
-                    }
-                    else if (entry.Key > ArchipelagoData.SHOP_LOCATION_MODIFIER)
-                    { //if location is a shop location, we need to save it in the shop mapping
-                        Data.shopLocationsMapping.Add(keyID.ToGameLocation(), FromScoutedItem(itemID, entry.Value));
-
-                    }
-                    else
-                    {  
-                    }
+                    
 
                 }
                 catch (Exception e)
@@ -362,14 +298,22 @@ namespace NEOTwewyArchipelagoMod
         //Remember what is currently in the reward queue when the game closed
 
         //
-        public Dictionary<string, NoiseDropInfo> noise_drop_information = new Dictionary<string, NoiseDropInfo>();
+        public Dictionary<string, NoiseDropInfo> noiseDropInformation = new Dictionary<string, NoiseDropInfo>();
 
         //Location ID, ItemID
-        public Dictionary<GameLocationID, ArchipelagoItem> scenarioLocationsMapping { get; set; } = new Dictionary<GameLocationID, ArchipelagoItem>();
-        public Dictionary<GameLocationID, ArchipelagoItem> shopLocationsMapping { get; set; } = new Dictionary<GameLocationID, ArchipelagoItem>();
-        public Dictionary<GameLocationID, ArchipelagoItem> diveLocationsMapping { get; set; } = new Dictionary<GameLocationID, ArchipelagoItem>();
-        public Dictionary<GameLocationID, ArchipelagoItem> noiseDropLocationsMapping { get; set; } = new Dictionary<GameLocationID, ArchipelagoItem>();
-        public Dictionary<GameLocationID, ArchipelagoItem> pigDropLocationsMapping { get; set; } = new Dictionary<GameLocationID, ArchipelagoItem>();
+        public Dictionary<LocationType, Dictionary<GameLocationID, ArchipelagoItem>> locationMappings { get; set; } = CreateLocationMappings();
+
+        private static Dictionary<LocationType, Dictionary<GameLocationID, ArchipelagoItem>> CreateLocationMappings()
+        {
+            Dictionary<LocationType, Dictionary<GameLocationID, ArchipelagoItem>> new_dict = new();
+            foreach (LocationType loc_type in Enum.GetValues<LocationType>())
+            {
+                Dictionary<GameLocationID, ArchipelagoItem> dict = new Dictionary<GameLocationID, ArchipelagoItem>();
+                new_dict.Add(loc_type, dict);
+            }
+
+            return new_dict;
+        }
 
     }
 

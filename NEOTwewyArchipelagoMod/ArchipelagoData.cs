@@ -16,8 +16,8 @@ namespace NEOTwewyArchipelagoMod
     public class ArchipelagoData
     {
         //The starting ID for the inserted rewards so we can receive items from archipelago, and the current ID we are at
-        public static long ARCHI_RECEIVE_START = 9000000;
-        private static long archiReceiveID = 9000000;
+        public static long ARCHI_RECEIVE_START = 9_000_000;
+        private static long archiReceiveID = 9_000_000;
 
         public static bool DataLoaded { get; set; } = false;
 
