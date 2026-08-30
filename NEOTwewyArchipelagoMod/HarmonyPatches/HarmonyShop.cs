@@ -57,7 +57,6 @@ namespace NEOTwewyArchipelagoMod.HarmonyPatches
             {// If the bought shop good is an archipelago location, mark it as checked
                 
                 Core.save.enqueueLocation(archiLocation);
-                Core.save.addCheckedLocation(archiLocation);
             }
         }
 

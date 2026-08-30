@@ -27,7 +27,6 @@ namespace NEOTwewyArchipelagoMod.HarmonyPatches
 
 
                 Core.save.enqueueLocation(locationID);
-                Core.save.addCheckedLocation(locationID);
 
 
                 if (Core.save.TryGetArchipelagoItem(locationID, out ArchipelagoItem item))

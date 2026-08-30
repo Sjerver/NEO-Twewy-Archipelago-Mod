@@ -37,15 +37,7 @@ namespace NEOTwewyArchipelagoMod
                     {
                         foreach(var optionEntry in Data.toggleOptions)
                         {
-                            if (optionEntry.Key == "prevent_out_of_logic")
-                            {
-                                typeof(Core).GetField(optionEntry.Key).SetValue(null, Convert.ToBoolean(optionEntry.Value));
-                            }
-                            else if (optionEntry.Key == "min_drop_rate")
-                            {
-                                typeof(Core).GetField(optionEntry.Key).SetValue(null, Convert.ToInt32(optionEntry.Value));
-                            }
-                            MelonLogger.Msg($"{optionEntry.Key} = {typeof(Core).GetField(optionEntry.Key).GetValue(null)}");
+                            ModOptions.UpdateOption(optionEntry.Key, optionEntry.Value);
                         }
                     }
                 } catch (Exception e)
@@ -80,7 +72,7 @@ namespace NEOTwewyArchipelagoMod
             {
                 if(entry.Key == "options")
                 {
-                    UpdateOptions(entry.Value);       
+                    UpdateOptionsInSave(entry.Value);       
                 }
                 else if(entry.Key == "noise_drop_reqs")
                 {
@@ -120,7 +112,7 @@ namespace NEOTwewyArchipelagoMod
             }
         }
 
-        private void UpdateOptions(object value)
+        private void UpdateOptionsInSave(object value)
         {
             MelonLogger.Msg($"options type: {value?.GetType()}");
             if (value is not JObject options)
@@ -129,23 +121,12 @@ namespace NEOTwewyArchipelagoMod
                 return;
             }
 
-            foreach (var optionEntry in options)
+            foreach (KeyValuePair<string,JToken> optionEntry in options)
             { //[21:55:30.795] [NEOTwewyArchipelagoMod] optionEntry: [prevent_out_of_logic, 1] / System.Collections.Generic.KeyValuePair`2[System.String,Newtonsoft.Json.Linq.JToken]
                 //MelonLogger.Msg($"optionEntry: {optionEntry} / {optionEntry.GetType()}");
                 Data.toggleOptions[optionEntry.Key] = optionEntry.Value;
-                if(optionEntry.Key == "prevent_out_of_logic")
-                {
-                    typeof(Core).GetField(optionEntry.Key).SetValue(null, Convert.ToBoolean(optionEntry.Value));
-                } else if (optionEntry.Key == "min_drop_rate")
-                {
-                    typeof(Core).GetField(optionEntry.Key).SetValue(null, Convert.ToInt32(optionEntry.Value));
-                }
-                MelonLogger.Msg($"{optionEntry.Key} = {typeof(Core).GetField(optionEntry.Key).GetValue(null)}");
-                
+                ModOptions.UpdateOption(optionEntry.Key, optionEntry.Value);
             }
-
-
-
         }
 
         public bool getGoalAchieved(){ return Data.goalAchieved;}
@@ -160,8 +141,6 @@ namespace NEOTwewyArchipelagoMod
         {
             return Data.noiseDropInformation.TryGetValue(name, out info);
         }
-
-        
 
         public bool TryGetArchipelagoItem(ArchipelagoLocationID locationID, out ArchipelagoItem item)
         {
@@ -185,6 +164,7 @@ namespace NEOTwewyArchipelagoMod
         {
             if (Core.syncState == SyncState.WrongSeed) { return; }
             Data.pendingLocations.Enqueue(location);
+            addCheckedLocation(location);
             Save();
         }
 

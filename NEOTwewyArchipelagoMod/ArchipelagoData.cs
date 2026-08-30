@@ -23,9 +23,8 @@ namespace NEOTwewyArchipelagoMod
 
         //itemID, RewardID
         public static Dictionary<long, NEOTwewyItemData> ReceivableRewards = new();
-        /// <summary>
-        /// Modifier applied additively to make ShopGoods ids unique in archipelago world
-        /// </summary>
+
+        public static long DLC_LOCATION_MODIFIER = 1_900_000;
         public static long SCENARIO_LOCATION_MODIFIER   = 1_000_000;
         public static long PIG_DROP_MODIFIER            = 410_000;
         public static long NOISE_DROP_MODIFIER          = 400_000;
@@ -46,6 +45,10 @@ namespace NEOTwewyArchipelagoMod
             if(id >= ARCHI_RECEIVE_START)
             {
                 return LocationType.ArchipelagoReceive;
+            }
+            else if (id >= DLC_LOCATION_MODIFIER)
+            {
+                return LocationType.DLC;
             }
             else if (id >= SCENARIO_LOCATION_MODIFIER)
             {
@@ -86,6 +89,9 @@ namespace NEOTwewyArchipelagoMod
             {
                 case LocationType.ArchipelagoReceive:
                     break; //These are the same!
+                case LocationType.DLC:
+                    gameID = gameID - DLC_LOCATION_MODIFIER;
+                    break;
                 case LocationType.ScenarioReward:
                     gameID = gameID - SCENARIO_LOCATION_MODIFIER;
                     break;
@@ -121,6 +127,9 @@ namespace NEOTwewyArchipelagoMod
             {
                 case LocationType.ArchipelagoReceive:
                     break; //These are the same!
+                case LocationType.DLC:
+                    archiID = archiID + DLC_LOCATION_MODIFIER;
+                    break;
                 case LocationType.ScenarioReward:
                     archiID = archiID + SCENARIO_LOCATION_MODIFIER;
                     break;
@@ -209,7 +218,8 @@ namespace NEOTwewyArchipelagoMod
         DiveReward,
         NoiseDrop,
         Skill,
-        PigDrop
+        PigDrop,
+        DLC
     }
 
     [TypeConverter(typeof(GameLocationIDTypeConverter))]

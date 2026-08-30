@@ -38,7 +38,6 @@ namespace NEOTwewyArchipelagoMod.HarmonyPatches
                 {
                     //MelonLogger.Msg($"Item {item.name} has been gotten");
                     Core.save.enqueueLocation(locationID);
-                    Core.save.addCheckedLocation(locationID);
 
                     if (item.id == NEOTwewyDataManager.DIVE_FP_ID)
                     {
@@ -72,7 +71,7 @@ namespace NEOTwewyArchipelagoMod.HarmonyPatches
                 for (int index = 0; index < __instance.mNoizePrizeList.Count; index++)
                 {
                     BattleResultUI.PrizeInfo prize = __instance.mNoizePrizeList[index];
-                    //MelonLogger.Msg($"{diveMaster.Id} Prize: {prize.PrizeType} - {prize.PrizeStatus} - {prize.CharacterPt} - {prize.Item}");
+                    MelonLogger.Msg($"{diveMaster.Id} mNoizePrizeList[{index}] Prize: {prize.PrizeType} - {prize.PrizeStatus} - {prize.CharacterPt} - {prize.Item}");
                 }
             }
             
@@ -103,7 +102,7 @@ namespace NEOTwewyArchipelagoMod.HarmonyPatches
 
             //For now just prevent drops entirely to test
             //#TODO Consider moving this to where calc takes place? So we dont trigger "BLING"
-            if (Core.prevent_out_of_logic && !DropRateCalc.DropRateReached(archiLocation)) { return false; }
+            if (ModOptions.prevent_out_of_logic && !DropRateCalc.DropRateReached(archiLocation)) { return false; }
 
             if (Core.save.TryGetArchipelagoItem(archiLocation, out ArchipelagoItem actualItem))
             {
@@ -115,7 +114,6 @@ namespace NEOTwewyArchipelagoMod.HarmonyPatches
                 }
 
                 Core.save.enqueueLocation(archiLocation);
-                Core.save.addCheckedLocation(archiLocation);
             }
 
             return true;
@@ -149,7 +147,6 @@ namespace NEOTwewyArchipelagoMod.HarmonyPatches
                 }
 
                 Core.save.enqueueLocation(archiLocation);
-                Core.save.addCheckedLocation(archiLocation);
             }
         }
 

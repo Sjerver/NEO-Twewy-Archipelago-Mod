@@ -275,6 +275,8 @@
 	<ItemGroup>
 		<Compile Include="ArchipelagoClient.cs" />
 		<Compile Include="ArchipelagoData.cs" />
+		<Compile Include="HarmonyPatches\HarmonyDLCItems.cs" />
+		<Compile Include="ModOptions.cs" />
 		<Compile Include="NoiseDropCalc.cs" />
 		<Compile Include="PigLocator.cs" />
 		<Compile Include="Initialization.cs" />

@@ -22,10 +22,6 @@ namespace NEOTwewyArchipelagoMod
         public static bool DEBUG = false;
         public static bool ENEMY_HP_1 = false;
 
-        public static bool prevent_out_of_logic = false;
-        public static int min_drop_rate = 0;
-
-
         public static KeyCode SKIP_DAY_BUTTON = KeyCode.F5;
 
         //For stuff we call one time once we reach the field scene
@@ -467,7 +463,6 @@ namespace NEOTwewyArchipelagoMod
         {//Queue a reward that can't be normally saved by the game
             if (syncState == SyncState.WrongSeed) { return; }
             save.enqueueLocation(locationID);
-            save.addCheckedLocation(locationID);
         }
 
         private async Task TryReconnect()
@@ -574,5 +569,13 @@ namespace NEOTwewyArchipelagoMod
         {
             return RewardID.ToString();
         }
+    }
+
+    public enum DLCOption
+    {
+        Vanilla = 0,
+        Disable = 1,
+        Randomize = 2,
+        Randomize_Empty = 3,
     }
 }

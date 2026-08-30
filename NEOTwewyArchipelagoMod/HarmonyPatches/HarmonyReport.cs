@@ -37,7 +37,7 @@ namespace NEOTwewyArchipelagoMod.HarmonyPatches
                 ArchipelagoLocationID archiLocation = gameID.ToArchipelagoLocation(LocationType.NoiseDrop);
 
                 //MelonLogger.Msg($"{archiLocation} can be? {DropRateCalc.DropRateReached(archiLocation)}");
-                if (Core.prevent_out_of_logic && !DropRateCalc.DropRateReached(archiLocation) && Core.save.TryGetArchipelagoItem(archiLocation, out ArchipelagoItem item))
+                if (ModOptions.prevent_out_of_logic && !DropRateCalc.DropRateReached(archiLocation) && Core.save.TryGetArchipelagoItem(archiLocation, out ArchipelagoItem item))
                 {
                     //MelonLogger.Msg("NO PIN IMAGE");
 
