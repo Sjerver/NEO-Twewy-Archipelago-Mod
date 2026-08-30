@@ -1,5 +1,6 @@
 ﻿using Archipelago.MultiClient.Net.Models;
 using Il2Cpp;
+using Il2CppCriMana;
 using Il2CppInterop.Runtime;
 using Il2CppMaster;
 using MelonLoader;
@@ -62,6 +63,9 @@ namespace NEOTwewyArchipelagoMod
         private static bool inBattle = false;
         private static bool inField = false;
 
+        public static RewardSafety rewardSafety = new();
+        public static bool lastRewardSafety = false;
+
         //Whether we are connecting to the server already
         private bool _connecting = false;
 
@@ -95,7 +99,7 @@ namespace NEOTwewyArchipelagoMod
                 _ = TryReconnect();
             }
 
-            
+
 
 
             if (syncState == SyncState.Ready)
@@ -118,52 +122,58 @@ namespace NEOTwewyArchipelagoMod
                     { // Only receive item with an index higher than the last item we received
                         continue;
                     }
+                    if (receivedItem.Item.LocationGame == Core.GAME_NAME && receivedItem.Item.Player.Name == Config.Data.slotName)
+                    {//Make sure to only check our location if the received item is from one of ours
+                        ArchipelagoLocationID aLocationID = new ArchipelagoLocationID(receivedItem.Item.LocationId);
+                        LocationType type = ArchipelagoData.GetLocationType(aLocationID);
+                        GameLocationID gLocationID = ArchipelagoData.GetGameLocation(aLocationID);
+                        if (save.TryGetArchipelagoItem(aLocationID, out ArchipelagoItem archiItem))
+                        {
+                            if (type == LocationType.ShopGood)
+                            {//If the location is a shop location
+                             //int goodID = (int)archiItem.locationID - (int)NEOConstants.shopLocationIDModifier;
+                             //int purchaseCount = SaveLoadController.Get<SaveDataShop>().GetShopGoodsPurchases((ShopGoods.ELabel)goodID);
 
-                    ArchipelagoLocationID aLocationID = new ArchipelagoLocationID(receivedItem.Item.LocationId);
-                    LocationType type = ArchipelagoData.GetLocationType(aLocationID);
-                    GameLocationID gLocationID = ArchipelagoData.GetGameLocation(aLocationID);
+                                if (!NEOTwewyDataManager.NON_SHOP_ITEMS.Contains(archiItem.id) && save.IsLocationChecked(aLocationID))
+                                {
+                                    //Don't give the item if the shop can give you the item normally and the location has been checked
+                                    continue;
+                                }
+                            }
 
-                    if(save.TryGetArchipelagoItem(aLocationID, out ArchipelagoItem archiItem))
+                            if ((type == LocationType.NoiseDrop || type == LocationType.PigDrop))
+                            {
+                                AllItems itemObject = MasterDataBase<AllItems>.Get((int)archiItem.id);
+                                ItemConst.EItemType itemType = itemObject.ItemType;
+                                //MelonLogger.Msg($"{archiItem.name} at {archiItem.locationName} isBadge {itemType == ItemConst.EItemType.Badge} " +
+                                //$"count {archiItem.count} archiBadge {archiItem.id != ARCHIPELAGO_ITEM_ID} locationChecked {save.IsLocationChecked(aLocationID)}");
+                                if (itemType == ItemConst.EItemType.Badge && archiItem.id != ARCHIPELAGO_ITEM_ID && archiItem.count == 1 && save.IsLocationChecked(aLocationID))
+                                {
+                                    //MelonLogger.Msg($"{archiItem.name} at {archiItem.locationName} has been gotten normally already");
+                                    //Don't give the item if it is a badge, not the archipelago badge, has count 1 and has been checked already
+                                    //In these cases noise / pig drops give you the item normally
+                                    continue;
+                                }
+                            }
+                            if (type == LocationType.DiveReward)
+                            {
+                                MelonLogger.Msg($"{archiItem.name} at {archiItem.locationName}" +
+                                    $"count {archiItem.count} archiBadge {archiItem.id != ARCHIPELAGO_ITEM_ID} locationChecked {save.IsLocationChecked(aLocationID)}");
+                                if (((archiItem.id != ARCHIPELAGO_ITEM_ID && archiItem.count == 1) || archiItem.id == NEOTwewyDataManager.DIVE_FP_ID)
+                                    && save.IsLocationChecked(aLocationID))
+                                {
+                                    //MelonLogger.Msg($"{archiItem.name} at {archiItem.locationName} has been gotten normally already");
+                                    //Don't give the item if its not an archipelago item and count is 1 or if its FP since dive reward can give you it
+                                    continue;
+                                }
+                            }
+
+                        }
+
+                    }
+                    else
                     {
-                        if (type == LocationType.ShopGood)
-                        {//If the location is a shop location
-                         //int goodID = (int)archiItem.locationID - (int)NEOConstants.shopLocationIDModifier;
-                         //int purchaseCount = SaveLoadController.Get<SaveDataShop>().GetShopGoodsPurchases((ShopGoods.ELabel)goodID);
-
-                            if (!NEOTwewyDataManager.NON_SHOP_ITEMS.Contains(archiItem.id) && save.IsLocationChecked(aLocationID))
-                            {
-                                //Don't give the item if the shop can give you the item normally and the location has been checked
-                                continue;
-                            }
-                        }
-
-                        if ((type == LocationType.NoiseDrop || type == LocationType.PigDrop))
-                        {
-                            AllItems itemObject = MasterDataBase<AllItems>.Get((int)archiItem.id);
-                            ItemConst.EItemType itemType = itemObject.ItemType;
-                            //MelonLogger.Msg($"{archiItem.name} at {archiItem.locationName} isBadge {itemType == ItemConst.EItemType.Badge} " +
-                            //$"count {archiItem.count} archiBadge {archiItem.id != ARCHIPELAGO_ITEM_ID} locationChecked {save.IsLocationChecked(aLocationID)}");
-                            if (itemType == ItemConst.EItemType.Badge && archiItem.id != ARCHIPELAGO_ITEM_ID && archiItem.count == 1 && save.IsLocationChecked(aLocationID))
-                            {
-                                //MelonLogger.Msg($"{archiItem.name} at {archiItem.locationName} has been gotten normally already");
-                                //Don't give the item if it is a badge, not the archipelago badge, has count 1 and has been checked already
-                                //In these cases noise / pig drops give you the item normally
-                                continue;
-                            }
-                        }
-                        if (type == LocationType.DiveReward)
-                        {
-                            MelonLogger.Msg($"{archiItem.name} at {archiItem.locationName}" +
-                                $"count {archiItem.count} archiBadge {archiItem.id != ARCHIPELAGO_ITEM_ID} locationChecked {save.IsLocationChecked(aLocationID)}");
-                            if (((archiItem.id != ARCHIPELAGO_ITEM_ID && archiItem.count == 1) || archiItem.id == NEOTwewyDataManager.DIVE_FP_ID)
-                                && save.IsLocationChecked(aLocationID))
-                            {
-                                //MelonLogger.Msg($"{archiItem.name} at {archiItem.locationName} has been gotten normally already");
-                                //Don't give the item if its not an archipelago item and count is 1 or if its FP since dive reward can give you it
-                                continue;
-                            }
-                        }
-
+                        //MelonLogger.Msg($"Received item from {receivedItem.Item.LocationGame} {receivedItem.Item.ItemName}");
                     }
 
                     long rewardID = ArchipelagoData.ReceivableRewards[receivedItem.Item.ItemId].reward_ID;
@@ -172,7 +182,6 @@ namespace NEOTwewyArchipelagoMod
                     save.setLastItemIndex(Math.Max(save.getLastItemIndex(), receivedItem.Index));
                 }
             }
-           
 
 
             if (!inBattle && inField)
@@ -211,18 +220,26 @@ namespace NEOTwewyArchipelagoMod
                     }
                 }
 
-                //Run Reward Queue
-                while (save.getRewardQueueSize() > 0 && FieldManager.Instance.IsPromptStatus() && syncState != SyncState.WrongSeed)
-                {//If rewards are queued and we can trigger a reward pop-up
-                    QueuedReward rewardToTrigger = save.dequeueReward();
-                    //MelonLogger.Msg(rewardToTrigger);
-                    FieldManager.Instance.ReserveScenarioReward((ScenarioRewards.ELabel)rewardToTrigger.RewardID, 1);
-                    save.Save();
+                if (save.getRewardQueueSize() > 0)
+                {//Outside if needed to prevent checking this superflously
+                    rewardSafety.safeStatusCheck();
+                    //Run Reward Queue
+                    while (rewardSafety && save.getRewardQueueSize() > 0 && syncState != SyncState.WrongSeed)
+                    {//If rewards are queued and we can trigger a reward pop-up
+                        QueuedReward rewardToTrigger = save.dequeueReward();
+                        //MelonLogger.Msg(rewardToTrigger);
+                        FieldManager.Instance.ReserveScenarioReward((ScenarioRewards.ELabel)rewardToTrigger.RewardID, 1);
+                        save.Save();
+                    }
                 }
-                if(archiItemDisplayQueue.Count > 0 && !processingArchiItem && FieldManager.Instance.IsMoveStatus())
-                {
-                    ProcessNextArchipelagoItem();
+                if (archiItemDisplayQueue.Count > 0) {
+                    rewardSafety.safeStatusCheck();
+                    if (rewardSafety && archiItemDisplayQueue.Count > 0 && !processingArchiItem && FieldManager.Instance.IsMoveStatus())
+                    {
+                        ProcessNextArchipelagoItem();
+                    }
                 }
+
             }
 
 
@@ -274,7 +291,7 @@ namespace NEOTwewyArchipelagoMod
 
             }
 
-            
+
             if (Input.GetKeyDown(SKIP_DAY_BUTTON) && inField)
             {//This is the button that can be pressed to skip to the end of a already beaten day
                 MelonLogger.Msg("F5 pressed");
@@ -282,7 +299,7 @@ namespace NEOTwewyArchipelagoMod
                 //Get clear location for the current game day
                 int gameDay = SaveLoadController.Get<SaveDataField>().GetScenarioDateDay();
                 GameLocationID locationID = ScenarioFlagList.endOfDayFlag.FirstOrDefault(x => x.Value.Item1 == gameDay).Value.Item2;
-                ArchipelagoLocationID aLocationID = (ArchipelagoLocationID)ArchipelagoData.GetArchipelagoLocation(locationID,LocationType.ScenarioReward);
+                ArchipelagoLocationID aLocationID = (ArchipelagoLocationID)ArchipelagoData.GetArchipelagoLocation(locationID, LocationType.ScenarioReward);
                 bool dayLocationReached = save.IsLocationChecked(aLocationID);
                 if (dayLocationReached)
                 {//if we reached the clear location for a chapter/day
@@ -366,7 +383,8 @@ namespace NEOTwewyArchipelagoMod
                 else if (sceneName == "Field")
                 { inField = true; }
 
-            } catch (Exception e){MelonLogger.Msg($"Scene Load {e}");}
+            }
+            catch (Exception e) { MelonLogger.Msg($"Scene Load {e}"); }
         }
 
         public override void OnSceneWasUnloaded(int buildIndex, string sceneName)
@@ -376,17 +394,18 @@ namespace NEOTwewyArchipelagoMod
             { //Change the current scene states
                 if (DEBUG) { MelonLogger.Msg($"Scene {sceneName} was unloaded."); }
                 if (sceneName == "Battle")
-                { inBattle = false;}
+                { inBattle = false; }
                 else if (sceneName == "Field")
-                { inField = false;}
-            } catch (Exception e) {  MelonLogger.Msg($"Scene Unload {e}"); }
+                { inField = false; }
+            }
+            catch (Exception e) { MelonLogger.Msg($"Scene Unload {e}"); }
         }
 
         public override void OnApplicationQuit()
         {
             if (syncState == SyncState.WrongSeed) { return; }
             save.Save();
-            
+
         }
 
         public static void CheckEndOfChapterReward(Scenario.EName scenarioFlag, bool value)
@@ -401,8 +420,9 @@ namespace NEOTwewyArchipelagoMod
                 //MelonLogger.Msg($"Location {archipelagoLocation} checked? {save.IsLocationChecked(archipelagoLocation)} -> Item? {save.TryGetScenarioRewardItem(rewardID, out ArchipelagoItem sd)} -> {sd.name}");
                 if (!save.IsLocationChecked(archipelagoLocation) && save.TryGetArchipelagoItem(archipelagoLocation, out ArchipelagoItem item))
                 {
-                   //MelonLogger.Msg($"Reward 1st Time {item.IsItemFromOurSlot()} && {item.name} && {item.name.Contains("Secret Report")}");
-                    if(item.IsItemFromOurSlot() &&item.name.Contains("Secret Report No.")){
+                    //MelonLogger.Msg($"Reward 1st Time {item.IsItemFromOurSlot()} && {item.name} && {item.name.Contains("Secret Report")}");
+                    if (item.IsItemFromOurSlot() && item.name.Contains("Secret Report No."))
+                    {
                         additionalSecretReport += 1;
                         //MelonLogger.Msg("Manual secret report count in chapter end");
                     }
@@ -418,7 +438,7 @@ namespace NEOTwewyArchipelagoMod
                 //additionalSecretReport = 0;
                 //MelonLogger.Msg("Manual reset of secret report count in chapter end");
                 MelonLogger.Msg($"End Day {gameDay} with {collectedSecretReports} Reports and furthest day {furthestDayReached}");
-                if(gameDay <= collectedSecretReports && gameDay == furthestDayReached)
+                if (gameDay <= collectedSecretReports && gameDay == furthestDayReached)
                 {
                     furthestDayReached++;
                 }
@@ -498,7 +518,7 @@ namespace NEOTwewyArchipelagoMod
             else
             {
                 syncState = SyncState.WrongSeed;
-                if(save.getSeed() == null)
+                if (save.getSeed() == null)
                 {
 
                     MelonLogger.MsgDirect(MelonLoader.Logging.ColorARGB.Red, "Current Seed is null");
@@ -507,7 +527,7 @@ namespace NEOTwewyArchipelagoMod
                 {
                     MelonLogger.MsgDirect(MelonLoader.Logging.ColorARGB.Red, "Current Seed does not match save file");
                 }
-                    
+
 
 
             }
@@ -548,13 +568,76 @@ namespace NEOTwewyArchipelagoMod
         private static void OnArchipelagoDialogEnded(DialogGetUI dialog)
         {
             //MelonLogger.Msg("Archipelago dialog ended");
-            
+
         }
 
     }
 
-    public class QueuedReward
-    {//This class is used for rewards received from the server
+    public class RewardSafety
+    {
+        public bool isScanMode = false;
+        public bool isPromptStatus = false;
+        public bool IsPreMapChangeBattle = false;
+        public bool isBattleStart = false;
+        public bool errorFree = true;
+
+        public void safeStatusCheck()
+        {
+            try
+            {
+                FieldManager fieldManager = FieldManager.Instance;
+
+                if (fieldManager != null) {
+
+                    bool newScanMode = fieldManager.IsScanMode;
+                    bool newPromptStatus = fieldManager.IsPromptStatus();
+                    bool newPreMapChangeBattle = fieldManager.IsPreMapChangeBattle();
+                    bool newBattleStart = fieldManager.IsBattleStart;
+
+                    if (isScanMode != newScanMode) { MelonLogger.Msg($"isScanMode {isScanMode} -> {newScanMode}"); }
+                    isScanMode = newScanMode;
+
+                    if (isPromptStatus != newPromptStatus) { MelonLogger.Msg($"isPromptStatus {isPromptStatus} -> {newPromptStatus}"); }
+                    isPromptStatus = newPromptStatus;
+
+                    if (IsPreMapChangeBattle != newPreMapChangeBattle) { MelonLogger.Msg($"IsPreMapChangeBattle {IsPreMapChangeBattle} -> {newPreMapChangeBattle}"); }
+                    IsPreMapChangeBattle = newPreMapChangeBattle;
+
+                    if (isBattleStart != newBattleStart) { MelonLogger.Msg($"isBattleStart {isBattleStart} -> {newBattleStart}"); }
+                    isBattleStart = newBattleStart;
+                }
+                errorFree = true;
+            }
+            catch (Exception e)
+            {
+                errorFree = false;
+                //MelonLogger.Error($"RewardSafety error: {e}");
+            }
+        }
+
+        public bool getValue()
+        {
+            return errorFree && !isScanMode && isPromptStatus && !IsPreMapChangeBattle && !isBattleStart;
+        }
+
+        public static implicit operator bool(RewardSafety obj)
+        {
+            bool value = obj.getValue();
+            if (Core.lastRewardSafety != value)
+            {
+                //MelonLogger.Msg($"RewardSafety Update {Core.lastRewardSafety} -> {value} ");
+                Core.lastRewardSafety = value;
+            }
+            return value;
+        }
+        public override string ToString()
+        {
+            bool value = getValue();
+            return value.ToString();
+        }
+    }
+
+    public class QueuedReward{//This class is used for rewards received from the server
         public int RewardID { get; set; }
         public long ItemIndex { get; set; }
         public int itemCount { get; set; }
