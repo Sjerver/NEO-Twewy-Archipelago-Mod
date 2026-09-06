@@ -49,7 +49,7 @@ namespace NEOTwewyArchipelagoMod.HarmonyPatches
         {
             //!Core.save.getCheckedLocations().Contains((long)__0)
             ShopItemUIInfo shopInfo = __instance.GetSelectUIInfo<ShopItemUIInfo>();
-            if (Core.DEBUG) { MelonLogger.Msg($"ShopGoods ID: {shopInfo.mMasterShopGoods.mId} with {shopInfo.mMasterShopGoods.mItem}"); }
+            //if (Core.DEBUG) { MelonLogger.Msg($"ShopGoods ID: {shopInfo.mMasterShopGoods.mId} with {shopInfo.mMasterShopGoods.mItem}"); }
 
             GameLocationID gamelocationID = new GameLocationID(shopInfo.mMasterShopGoods.mId);
             ArchipelagoLocationID archiLocation = gamelocationID.ToArchipelagoLocation(LocationType.ShopGood);

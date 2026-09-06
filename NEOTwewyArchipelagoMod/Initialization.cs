@@ -87,7 +87,7 @@ namespace NEOTwewyArchipelagoMod
                 GameLocationID gameLocationID = new GameLocationID(good.mId);
                 if (Core.save.TryGetArchipelagoItem(gameLocationID.ToArchipelagoLocation(LocationType.ShopGood), out ArchipelagoItem archiItem))
                 {//If the shop good is an location
-                    if (Core.DEBUG) { MelonLogger.Msg($"At {archiItem.locationName} replaced {good.mItem} with {archiItem.name} "); }
+                    //if (Core.DEBUG) { MelonLogger.Msg($"At {archiItem.locationName} replaced {good.mItem} with {archiItem.name} "); }
                     if (NEOTwewyDataManager.NON_SHOP_ITEMS.Contains(archiItem.id))
                     { //Certain items need to be handled via archipelago
                         good.mItem = (AllItems.ELabel)Core.ARCHIPELAGO_ITEM_ID;
@@ -140,7 +140,7 @@ namespace NEOTwewyArchipelagoMod
                         itemCount = [1, 1, 1, 1];
                     }
                     good.mItemCount[0] = itemCount[0]; good.mItemCount[1] = itemCount[1]; good.mItemCount[2] = itemCount[2]; good.mItemCount[3] = itemCount[3];
-                    if (Core.DEBUG) { MelonLogger.Msg($"itemCount  = [{good.mItemCount[0]},{good.mItemCount[1]},{good.mItemCount[2]},{good.mItemCount[3]},"); }
+                    //if (Core.DEBUG) { MelonLogger.Msg($"itemCount  = [{good.mItemCount[0]},{good.mItemCount[1]},{good.mItemCount[2]},{good.mItemCount[3]},"); }
                 }
             }
         }
@@ -163,7 +163,7 @@ namespace NEOTwewyArchipelagoMod
                 try
                 {
                     archipelagoLocationId =  gameLocationID.ToArchipelagoLocation(LocationType.PigDrop);
-                } catch (Exception e)
+                } catch
                 {
                     continue;
                 }

@@ -201,12 +201,12 @@ namespace NEOTwewyArchipelagoMod
                     if (entry.Value.ItemGame == Core.GAME_NAME && entry.Value.Player.Name == Config.Data.slotName)
                     {//If the item is in our game, we can use the normal itemID in the normal reward
                         //Item also needs be in our slot!
-                        if (Core.DEBUG) { MelonLogger.Msg($"Location {entry.Value.LocationDisplayName} ({entry.Key}) has {entry.Value.ItemName} ({entry.Value.ItemId})"); }
+                        //if (Core.DEBUG) { MelonLogger.Msg($"Location {entry.Value.LocationDisplayName} ({entry.Key}) has {entry.Value.ItemName} ({entry.Value.ItemId})"); }
                         itemID = NEOTwewyDataManager.item_data[entry.Value.ItemName].id;
                     }
                     else
                     {//If the item is not originally from our game we need to use the archipelago replacement item
-                        if (Core.DEBUG) { MelonLogger.Msg($"Location {entry.Value.LocationDisplayName} ({entry.Key}) has {entry.Value.ItemName} ({entry.Value.ItemId})"); }
+                        //if (Core.DEBUG) { MelonLogger.Msg($"Location {entry.Value.LocationDisplayName} ({entry.Key}) has {entry.Value.ItemName} ({entry.Value.ItemId})"); }
                         itemID = Core.ARCHIPELAGO_ITEM_ID;
                         //Data.scenarioLocationsMapping.Add(entry.Key, FromScoutedItem( entry.Value));
                     }

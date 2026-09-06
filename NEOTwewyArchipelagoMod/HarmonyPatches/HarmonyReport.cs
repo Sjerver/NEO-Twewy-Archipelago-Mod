@@ -63,6 +63,7 @@ namespace NEOTwewyArchipelagoMod.HarmonyPatches
                     //MelonLogger.Msg(item.locationName);
                     DropInfo.DropBadge badge = __instance.mDropBadgeList[i];
                     badge.mBadgeNameText.SetText($"{item.name}");
+                    //TODO: Pin Number -> Game/Slot?
                     if (item.IsItemFromOurSlot())
                     {
                         AllItems itemObject = MasterDataBase<AllItems>.Get((int)item.id);

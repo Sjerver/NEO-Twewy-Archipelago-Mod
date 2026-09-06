@@ -58,12 +58,12 @@ namespace NEOTwewyArchipelagoMod
             double drop_multiplier = 1.0;
 
             double level_multiplier = 1.0;
-            //TODO: Level_multiplier from inventory check
+            //TODO: Level_multiplier skills from inventory check
 
 
             drop_multiplier = level_multiplier * NEOTwewyDataManager.EXPECTED_LEVEL_PER_REGION[Core.furthestDayReached];
 
-            //day 3 required for threads drop rate calc
+            //TODO: threads drop rate calc real [including "slot" check also needed in archipelago logic or at most chara check]
 
 
             //Chain length TODO: Skill checks
@@ -79,7 +79,7 @@ namespace NEOTwewyArchipelagoMod
 
 
 
-            //killer remix
+            //TODO: killer remix
 
             currentMaxDropRate = (int)Math.Floor(drop_multiplier);
             //MelonLogger.Msg($"currentMaxDropRate {currentMaxDropRate}");

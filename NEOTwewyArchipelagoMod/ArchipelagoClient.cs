@@ -143,7 +143,7 @@ namespace NEOTwewyArchipelagoMod
         private void OnItemReceived(ReceivedItemsHelper helper)
         {
             var item = helper.PeekItem();
-            if(Core.DEBUG) { MelonLogger.Msg($"Queued {item.ItemName}"); }
+            //if(Core.DEBUG) { MelonLogger.Msg($"Queued {item.ItemName}"); }
             
             pendingItems.Enqueue(new PendingItem(helper.DequeueItem(),helper.Index));
 

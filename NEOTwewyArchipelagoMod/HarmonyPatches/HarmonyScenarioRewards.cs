@@ -22,7 +22,7 @@ namespace NEOTwewyArchipelagoMod.HarmonyPatches
 
             if ((long)__0 < ArchipelagoData.ARCHI_RECEIVE_START && !Core.save.IsLocationChecked(locationID))
             {//The server needs to be alerted about the location
-                if (Core.DEBUG) { MelonLogger.Msg($"Queue location {__0} to send to server"); }
+                //if (Core.DEBUG) { MelonLogger.Msg($"Queue location {__0} to send to server"); }
                 //Tell the server we got the location
 
 
@@ -54,7 +54,7 @@ namespace NEOTwewyArchipelagoMod.HarmonyPatches
 
             ScenarioRewards scenarioRewards = MasterDataBase<ScenarioRewards>.Get((int)__0);
 
-            if (Core.DEBUG) { MelonLogger.Msg($"Gave Item {scenarioRewards.mReward1st} x {scenarioRewards.mReward1stCount}"); }
+            //if (Core.DEBUG) { MelonLogger.Msg($"Gave Item {scenarioRewards.mReward1st} x {scenarioRewards.mReward1stCount}"); }
 
             //Auto Save that after we get an item
             FieldManager.Instance.CallReserveAutoSave();
