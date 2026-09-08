@@ -80,6 +80,7 @@ namespace NEOTwewyArchipelagoMod
             catch
             {
                 //MelonLogger.Error(e);
+                string errorMessage = $"Failed to Connect to {server} as {user}:";
                 IsConnected = false;
             }
         }

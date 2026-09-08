@@ -18,8 +18,8 @@ namespace NEOTwewyArchipelagoMod.HarmonyPatches
     {
         public static void Prefix()
         {
-            //MelonLogger.Msg($"Finished day {SaveLoadController.Get<SaveDataField>().GetNewestDateDay()}");
-            if (Core.furthestDayReached > 0)
+            //MelonLogger.Msg($"SetNextScenarioDateDay: Finished day {SaveLoadController.Get<SaveDataField>().GetNewestDateDay()}");
+            if (Core.furthestDayReached > 0 && !Core.CheckUnlockNewChapter())
             {
                 //We set to furthestDayReached -1 because this method increases that by 1 naturally
                 SaveLoadController.Get<SaveDataField>().SetScenarioDateDay(Core.furthestDayReached - 1);
@@ -43,7 +43,7 @@ namespace NEOTwewyArchipelagoMod.HarmonyPatches
     {
         public static void Prefix(int __0, bool __1)
         {
-            if (Core.DEBUG) { MelonLogger.Msg($"Set Scenario Flag {(Scenario.EName)__0} to {__1}"); }
+            //MelonLogger.Msg($"Set Scenario Flag {(Scenario.EName)__0} to {__1}");
 
             Core.CheckEndOfChapterReward((Scenario.EName)__0, __1);
         }
@@ -53,7 +53,7 @@ namespace NEOTwewyArchipelagoMod.HarmonyPatches
     {
         public static void Prefix(int __0, bool __1)
         {
-            if (Core.DEBUG) { MelonLogger.Msg($"Set ScenarioFlagData index {__0} name {ScenarioFlagList.flagNamesFromSaveIndex[__0]} to {__1}"); }
+            //MelonLogger.Msg($"Set ScenarioFlagData index {__0} name {ScenarioFlagList.flagNamesFromSaveIndex[__0]} to {__1}");
 
             Core.CheckEndOfChapterReward(ScenarioFlagList.flagNamesFromSaveIndex[__0], __1);
 

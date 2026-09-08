@@ -26,4 +26,6 @@ namespace NEOTwewyArchipelagoMod.HarmonyPatches
             }
         }
     }
+
+    //FieldSkillTreeData.GetSkillStatus will likely need to be patched to check locations to know if the status of a node
 }
