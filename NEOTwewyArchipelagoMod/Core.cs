@@ -38,7 +38,6 @@ namespace NEOTwewyArchipelagoMod
             Scenario.EName.System_EnableMenu_Analyze_Memo,
             Scenario.EName.System_EnableMenu_Fashion,
             Scenario.EName.System_EnableMenu_Badge, //Can't be true unless Rindo is initalized
-            Scenario.EName.System_EnableMusicSync, //QOL but could also arguably be locked
         };
 
         public static List<Scenario.EName> alwaysOffFlags = new List<Scenario.EName>()
@@ -131,7 +130,12 @@ namespace NEOTwewyArchipelagoMod
                     initalized = true;
 
                     furthestDayReached = SaveLoadController.Get<SaveDataField>().GetNewestDateDay();
-                    //MelonLogger.Msg($"Current Newest Day is {furthestDayReached}");
+
+                    if (ModOptions.soundsurf)
+                    {//Enable soundsurf if the option is set
+                        alwaysOnFlags.Add(Scenario.EName.System_EnableMusicSync);
+                    }
+
                 }
 
                 if (SaveLoadController.Get<SaveDataField>().GetTipsFlag(Tips.ELabel.Tips_0003))
