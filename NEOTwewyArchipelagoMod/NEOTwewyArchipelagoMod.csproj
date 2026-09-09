@@ -276,6 +276,7 @@
 		<Compile Include="ArchipelagoClient.cs" />
 		<Compile Include="ArchipelagoData.cs" />
 		<Compile Include="HarmonyPatches\HarmonyDLCItems.cs" />
+		<Compile Include="HarmonyPatches\HarmonyMenus.cs" />
 		<Compile Include="ModOptions.cs" />
 		<Compile Include="NoiseDropCalc.cs" />
 		<Compile Include="PigLocator.cs" />
@@ -297,6 +298,7 @@
 		<Compile Include="HarmonyPatches\HarmonyGeneric.cs" />
 		<Compile Include="Core.cs" />
 		<Compile Include="NEOTwewyData.cs" />
+		<Compile Include="RewardSafety.cs" />
 		<Compile Include="StructCoversion.cs" />
 		<Content Include="Directory.Build.props" />
 	</ItemGroup>
