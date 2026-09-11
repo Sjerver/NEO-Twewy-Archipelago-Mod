@@ -150,6 +150,23 @@ namespace NEOTwewyArchipelagoMod
             return Data.locationMappings[type].TryGetValue(gameLocation, out item);
         }
 
+        public List<ArchipelagoItem> GetMissingLocations()
+        {
+            List<ArchipelagoItem> allItems = new List<ArchipelagoItem>();
+            foreach (var typeMapping in Data.locationMappings)
+            {
+                foreach (var item in typeMapping.Value.Values)
+                {
+                    if (!Data.checkedLocations.Contains(item.locationID))
+                    {
+                        allItems.Add(item);
+                    }
+                        
+                }
+            }
+            return allItems;
+        }
+
         public int getPendingLocationSize()
         {
             return Data.pendingLocations.Count;
@@ -238,22 +255,24 @@ namespace NEOTwewyArchipelagoMod
         public static ArchipelagoItem FromScoutedItem(long id, ScoutedItemInfo info)
         {
             long itemCount = 1;
+            ItemType itemType = ItemType.OtherGame;
             if (info.ItemGame == Core.GAME_NAME && info.Player.Name == Config.Data.slotName)
             {
                 itemCount = NEOTwewyDataManager.item_data[info.ItemName].count;
+                itemType = NEOTwewyDataManager.item_data[info.ItemName].type;
             }
-            
-            
-            return new ArchipelagoItem(
-                id,
-                info.ItemName,
-                new ArchipelagoLocationID(info.LocationId),
-                info.LocationName,
-                info.ItemId,
-                info.ItemGame,
-                itemCount,
-                info.Player.Name
-            );
+
+
+                return new ArchipelagoItem(
+                    id,
+                    info.ItemName,
+                    new ArchipelagoLocationID(info.LocationId),
+                    info.LocationName,
+                    info.ItemId,
+                    info.ItemGame,
+                    itemCount,
+                    info.Player.Name
+                );
         }
     }
 

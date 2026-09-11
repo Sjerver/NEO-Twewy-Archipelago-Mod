@@ -209,6 +209,14 @@ namespace NEOTwewyArchipelagoMod
 
     }
 
+    public enum ItemType
+    {
+        OtherGame,
+        AllItems,
+        Skill,
+        CharacterNode
+    }
+
     public enum LocationType
     {
         Vanilla,
