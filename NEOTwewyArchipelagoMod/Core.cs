@@ -100,29 +100,28 @@ namespace NEOTwewyArchipelagoMod
                 _ = TryReconnect();
             }
 
-            if (syncState == SyncState.Ready && initalized)
-            {
-                if (client.IsConnected && save.getPendingLocationSize() > 0)
-                {//If we have locations we need to do send to the server
-                    Core.client.session.Locations.CompleteLocationChecks([save.dequeueLocation().Value]);
-                }
-
-                if (client.IsConnected && save.getGoalAchieved())
-                { //Inform the server that we reached our goal
-                    client.session.SetGoalAchieved();
-                }
-                if (client.pendingItems.Count > 0)
-                { //If we are to receive items from the client, and have done the work to be able to receive them
-
-                    ProcessPendingItems();
-                }
-            }
+            
 
 
             if (!inBattle && inField)
             { //Only if the battle scene is not loaded and the field scene is loaded
+                if (syncState == SyncState.Ready && initalized)
+                {
+                    if (client.IsConnected && save.getPendingLocationSize() > 0)
+                    {//If we have locations we need to do send to the server
+                        Core.client.session.Locations.CompleteLocationChecks([save.dequeueLocation().Value]);
+                    }
 
-                
+                    if (client.IsConnected && save.getGoalAchieved())
+                    { //Inform the server that we reached our goal
+                        client.session.SetGoalAchieved();
+                    }
+                    if (client.pendingItems.Count > 0)
+                    { //If we are to receive items from the client, and have done the work to be able to receive them
+
+                        ProcessPendingItems();
+                    }
+                }
 
 
                 if (!initalized && syncState != SyncState.WrongSeed)
@@ -162,10 +161,11 @@ namespace NEOTwewyArchipelagoMod
                     }
                 }
 
+                rewardSafety.safeStatusCheck();
                 if (save.getRewardQueueSize() > 0)
                 {//Outside if needed to prevent checking this superflously
-                    rewardSafety.safeStatusCheck();
                     //Run Reward Queue
+                    
                     if (rewardSafety && save.getRewardQueueSize() > 0 && syncState != SyncState.WrongSeed)
                     {//If rewards are queued and we can trigger a reward pop-up
                         QueuedReward rewardToTrigger = save.dequeueReward();
@@ -175,7 +175,6 @@ namespace NEOTwewyArchipelagoMod
                     }
                 }
                 if (archiItemDisplayQueue.Count > 0) {
-                    rewardSafety.safeStatusCheck();
                     if (rewardSafety && archiItemDisplayQueue.Count > 0 && !processingArchiItem && FieldManager.Instance.IsMoveStatus())
                     {
                         ProcessNextArchipelagoItem();
@@ -183,16 +182,11 @@ namespace NEOTwewyArchipelagoMod
                 }
 
             }
-
-
-
-
-
             if (DEBUG && Input.GetKeyDown(KeyCode.F8))
             {
                 MelonLogger.Msg("F8 pressed");
                 int rewardID = ArchipelagoData.ReceivableRewards[10205].reward_ID; //Joli Becot
-                save.enqueueReward(new QueuedReward(rewardID,1000));
+                save.enqueueReward(new QueuedReward(rewardID, 1000));
                 rewardID = ArchipelagoData.ReceivableRewards[31006].reward_ID;
                 save.enqueueReward(new QueuedReward(rewardID, 1000));
 
@@ -209,7 +203,7 @@ namespace NEOTwewyArchipelagoMod
                 ArchipelagoLocationID aLocationID = (ArchipelagoLocationID)ArchipelagoData.GetArchipelagoLocation(locationID, LocationType.ScenarioReward);
                 bool dayLocationReached = save.IsLocationChecked(aLocationID);
                 if (dayLocationReached)
-                {   
+                {
                     FieldManager.Instance.m_FieldSequenceComponent.ChangeState(new Action(FieldManager.Instance.m_FieldSequenceComponent.State_NextDayFadeout));
                 }
                 else
@@ -223,7 +217,7 @@ namespace NEOTwewyArchipelagoMod
             if (DEBUG && Input.GetKeyDown(KeyCode.F6))
             {
                 MelonLogger.Msg("F6 pressed");
-                int rewardID = ArchipelagoData.ReceivableRewards[31000 + (furthestDayReached-1)].reward_ID;
+                int rewardID = ArchipelagoData.ReceivableRewards[31000 + (furthestDayReached - 1)].reward_ID;
                 save.enqueueReward(new QueuedReward(rewardID, 1000));
 
 
@@ -259,7 +253,7 @@ namespace NEOTwewyArchipelagoMod
 
                     if ((type == LocationType.NoiseDrop || type == LocationType.PigDrop))
                     {
-                        MelonLogger.Msg($"{(int)archiItem.id} {archiItem.name} {archiItem.itemGame}");
+                        //MelonLogger.Msg($"{(int)archiItem.id} {archiItem.name} {archiItem.itemGame}");
                         AllItems itemObject = MasterDataBase<AllItems>.Get((int)archiItem.id);
                         ItemConst.EItemType itemType = itemObject.ItemType;
                         //MelonLogger.Msg($"{archiItem.name} at {archiItem.locationName} isBadge {itemType == ItemConst.EItemType.Badge} " +
@@ -305,11 +299,16 @@ namespace NEOTwewyArchipelagoMod
 
             try
             { //Change the current scene states
-                //if (DEBUG) { MelonLogger.Msg($"Scene {sceneName} was loaded."); }
+                if (DEBUG) { MelonLogger.Msg($"Scene {sceneName} was loaded."); }
                 if (sceneName == "Battle")
                 { inBattle = true; }
                 else if (sceneName == "Field")
-                { inField = true; }
+                { 
+                    inField = true;
+                    //Assume we are leaving a battle here, since we are in the field scene now
+                    rewardSafety.assumeBattle = false;
+                    //MelonLogger.Msg($"Assuming battle is over since we are in the field scene now");
+                }
 
             }
             catch (Exception e) { MelonLogger.Msg($"Scene Load {e}"); }
@@ -320,7 +319,7 @@ namespace NEOTwewyArchipelagoMod
             base.OnSceneWasUnloaded(buildIndex, sceneName);
             try
             { //Change the current scene states
-                //if (DEBUG) { MelonLogger.Msg($"Scene {sceneName} was unloaded."); }
+                if (DEBUG) { MelonLogger.Msg($"Scene {sceneName} was unloaded."); }
                 if (sceneName == "Battle")
                 { inBattle = false; }
                 else if (sceneName == "Field")

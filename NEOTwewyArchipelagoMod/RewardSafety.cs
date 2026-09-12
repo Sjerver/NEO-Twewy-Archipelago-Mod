@@ -1,4 +1,5 @@
 ﻿using Il2Cpp;
+using MelonLoader;
 
 namespace NEOTwewyArchipelagoMod
 {
@@ -10,27 +11,37 @@ namespace NEOTwewyArchipelagoMod
         public bool isBattleStart = false;
         public bool errorFree = true;
 
+        public bool assumeBattle = false;
+
         public bool mainMenuOpen = false;
         public bool shopMenuOpen = false;
         public bool optionMenuOpen = false;
 
         public bool getValue()
         {
-            return errorFree && !isScanMode && isPromptStatus && !IsPreMapChangeBattle && !isBattleStart && !mainMenuOpen && !shopMenuOpen && !optionMenuOpen;
+            return errorFree && !assumeBattle && !isScanMode && isPromptStatus && !IsPreMapChangeBattle && !isBattleStart && !mainMenuOpen && !shopMenuOpen && !optionMenuOpen;
         }
 
-        public void safeStatusCheck()
+        public bool safeStatusCheck()
         {
+            if (assumeBattle) { return false; }
             try
             {
                 FieldManager fieldManager = FieldManager.Instance;
 
                 if (fieldManager != null) {
 
+                    bool newBattleStart = fieldManager.IsBattleStart;
+                    if (newBattleStart){
+                        //MelonLogger.Msg("Assuming battle due to IsBattleStart being true");
+                        assumeBattle = true;}
+                    //Return early if we are assuming a battle, as the others arent safe to check during battle
+                    if (assumeBattle){return false; }
+
                     bool newScanMode = fieldManager.IsScanMode;
                     bool newPromptStatus = fieldManager.IsPromptStatus();
                     bool newPreMapChangeBattle = fieldManager.IsPreMapChangeBattle();
-                    bool newBattleStart = fieldManager.IsBattleStart;
+                    
 
                     //if (isScanMode != newScanMode) { MelonLogger.Msg($"isScanMode {isScanMode} -> {newScanMode}"); }
                     isScanMode = newScanMode;
@@ -46,11 +57,12 @@ namespace NEOTwewyArchipelagoMod
                 }
                 errorFree = true;
             }
-            catch
+            catch(Exception e)
             {
                 errorFree = false;
                 //MelonLogger.Error($"RewardSafety error: {e}");
             }
+            return getValue();
         }
 
         public static implicit operator bool(RewardSafety obj)

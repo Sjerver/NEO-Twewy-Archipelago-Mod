@@ -45,14 +45,18 @@ namespace NEOTwewyArchipelagoMod.HarmonyPatches
     [HarmonyPatch(typeof(MainOptionUI))]
     public static class PatchMainOptionUI
     {
-        [HarmonyPatch("OnAwake")]
+        [HarmonyPatch("OpenMainOption")]
         [HarmonyPostfix]
-        public static void OnAwake() 
-        { Core.rewardSafety.optionMenuOpen = true;}
+        public static void OpenMainOption() 
+        { //MelonLogger.Msg("MainOptionUI opened");
+            Core.rewardSafety.optionMenuOpen = true;}
 
-        [HarmonyPatch("OnDelete")]
+        [HarmonyPatch("EndMainOption")]
         [HarmonyPostfix]
-        public static void OnDelete() 
-        { Core.rewardSafety.optionMenuOpen = false;}
+        public static void EndMainOption() 
+        { //MelonLogger.Msg("MainOptionUI closed");
+            Core.rewardSafety.optionMenuOpen = false;}
     }
+
+    //TODO: Add replay menu
 }
