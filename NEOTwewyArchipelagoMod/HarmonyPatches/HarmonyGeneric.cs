@@ -55,5 +55,25 @@ namespace NEOTwewyArchipelagoMod.HarmonyPatches
         }
     }
 
-        //Might be useful to find last battle IsLastBossBattleScenario
+    //Might be useful to find last battle IsLastBossBattleScenario
+
+    [HarmonyPatch(typeof(FieldManager))]
+    public static class FieldManagerPatch
+    {
+        [HarmonyPatch("DiveBattle")]
+        [HarmonyPrefix]
+        public static void DiveBattlePrefix()
+        {
+            Core.rewardSafety.assumeBattle = true;
+            //MelonLogger.Msg("Assuming battle due to DiveBattle being called");
+        }
+
+        [HarmonyPatch("ScenarioBattle")]
+        [HarmonyPrefix]
+        public static void ScenarioBattlePrefix()
+        {
+            Core.rewardSafety.assumeBattle = true;
+            //MelonLogger.Msg("Assuming battle due to ScenarioBattle being called");
+        }
     }
+}

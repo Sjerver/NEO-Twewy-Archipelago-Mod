@@ -24,6 +24,7 @@ namespace NEOTwewyArchipelagoMod
 
         public bool safeStatusCheck()
         {
+            //MelonLogger.Msg("RewardSafety safeStatusCheck");
             if (assumeBattle) { return false; }
             try
             {

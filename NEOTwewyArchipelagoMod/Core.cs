@@ -323,7 +323,10 @@ namespace NEOTwewyArchipelagoMod
                 if (sceneName == "Battle")
                 { inBattle = false; }
                 else if (sceneName == "Field")
-                { inField = false; }
+                { inField = false;
+                    rewardSafety.assumeBattle = true;
+                    //MelonLogger.Msg($"Assuming battle since we are leaving the field scene now");
+                }
             }
             catch (Exception e) { MelonLogger.Msg($"Scene Unload {e}"); }
         }
