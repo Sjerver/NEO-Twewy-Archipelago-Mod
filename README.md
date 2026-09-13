@@ -4,7 +4,8 @@ This is a mod for [NEO: The World Ends with You](https://store.steampowered.com/
 ## What it Does
 This mod adds Archipelago support to NEO: The World Ends with You and allows it to participate in Archipelago multiworld games:
 
-- Replaces Story/Scenario Rewards and Shop items up to the end of Week 1 Day 4.
+- Randomizes Story/Scenario Rewards up to the end of Week 1 Day 4.
+- Optionally can randomize Shop Items, Noise Drops, Dive Rewards, Pig Drops, and DLC items.
 - Adds rewards for beating a day the first time.
 - Connects to the Archipelago server on boot.
 
