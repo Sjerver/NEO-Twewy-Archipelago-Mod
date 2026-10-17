@@ -47,11 +47,17 @@ namespace NEOTwewyArchipelagoMod.HarmonyPatches
                 }
                 else
                 {// Just start local save
+                    Core.save.UpdateSlotData(Core.client.LoginInfo.SlotData);
                     Core.syncState = SyncState.Ready;
                 }
+            } else{ //Any other button
+                if (Core.client.IsConnected &&(Core.client.session.RoomState.Seed == Core.save.getSeed()))
+                { //Client is connected and seed is correct, update slotData just in case there issues the first time
+                    //MelonLogger.Msg("Updating slot data to match Archipelago server");
+                    Core.save.UpdateSlotData(Core.client.LoginInfo.SlotData);
+                }
             }
-
-                return true;
+            return true;
         }
     }
 

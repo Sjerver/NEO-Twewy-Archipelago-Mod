@@ -19,6 +19,9 @@ namespace NEOTwewyArchipelagoMod
 {
     public class ModSave
     {
+        private static string NOISE_INFO_PATH = "Mods/NeoTwewyArchipelago/Data/NoiseDropInfo.json";
+
+
         private string SavePath{ get; set; }
 
         private ModSaveData Data { get; set; }
@@ -39,6 +42,9 @@ namespace NEOTwewyArchipelagoMod
                         {
                             ModOptions.UpdateOption(optionEntry.Key, optionEntry.Value);
                         }
+                    } else
+                    {
+                        MelonLogger.Error("Save file is missing options");
                     }
                 } catch (Exception e)
                 {
@@ -70,45 +76,53 @@ namespace NEOTwewyArchipelagoMod
             if (Core.syncState == SyncState.WrongSeed) { return; }
             foreach (KeyValuePair<string, object> entry in slotData)
             {
-                if(entry.Key == "options")
+                if (entry.Key == "options")
                 {
                     UpdateOptionsInSave(entry.Value);       
-                }
-                else if(entry.Key == "noise_drop_reqs")
-                {
-                   UpdateNoiseDropInfo(entry.Value);
                 }
                 else
                 {
                     MelonLogger.Error($"Unknown slot_data {entry.Key}");
                 }
             }
+            UpdateNoiseDropInfo();
             Save();
         }
 
-        private void UpdateNoiseDropInfo(object value)
+        private void UpdateNoiseDropInfo()
         {
-            MelonLogger.Msg($"noise_drop_reqs type: {value?.GetType()}");
-            if (value is not JObject info)
+            if (File.Exists(NOISE_INFO_PATH))
             {
-                MelonLogger.Error("Invalid noise drop data.");
-                return;
-            }
-
-            foreach (var infoEntry in info)
-            {
-                if (infoEntry.Value is not JObject dropInfo)
+                string json = File.ReadAllText(NOISE_INFO_PATH);
+                Dictionary<string, JObject> info;
+                try
                 {
-                    MelonLogger.Error($"Invalid noise drop data for {infoEntry.Key}.");
-                    continue;
+                    info = JsonConvert.DeserializeObject<Dictionary<string, JObject>>(json);
+                }
+                catch (Exception e)
+                {
+                    MelonLogger.Error(e);
+                    MelonLogger.MsgDirect(MelonLoader.Logging.ColorARGB.Red, "File missing, please make sure you installed the mod correctly!");
+                    return;
                 }
 
-                int minDropRate = dropInfo["min_drop_rate"]!.Value<int>();
-                bool chainable = dropInfo["chainable"]!.Value<bool>();
-                bool blueNoise = dropInfo["blue_noise"]!.Value<bool>();
+                foreach (var infoEntry in info)
+                {
+                    if (infoEntry.Value is not JObject dropInfo)
+                    {
+                        MelonLogger.Error($"Invalid noise drop data for {infoEntry.Key}.");
+                        continue;
+                    }
 
-                Data.noiseDropInformation[infoEntry.Key] =
-                    new NoiseDropInfo(minDropRate, chainable, blueNoise);
+                    double drop_chance = dropInfo["drop_rate"]!.Value<double>();
+
+                    int minDropRate = Math.Max(1, (int)Math.Ceiling((ModOptions.min_drop_rate / 100) / drop_chance));
+                    bool chainable = dropInfo["chainable"]!.Value<bool>();
+                    bool blueNoise = dropInfo["blue_noise"]!.Value<bool>();
+
+                    Data.noiseDropInformation[infoEntry.Key] =
+                        new NoiseDropInfo(minDropRate, chainable, blueNoise);
+                }
             }
         }
 
@@ -297,6 +311,7 @@ namespace NEOTwewyArchipelagoMod
         //Remember what is currently in the reward queue when the game closed
 
         //
+        [JsonProperty(Order = 1000)]
         public Dictionary<string, NoiseDropInfo> noiseDropInformation = new Dictionary<string, NoiseDropInfo>();
 
         //Location ID, ItemID

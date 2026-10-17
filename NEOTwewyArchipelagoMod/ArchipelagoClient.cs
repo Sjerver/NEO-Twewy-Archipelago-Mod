@@ -37,7 +37,6 @@ namespace NEOTwewyArchipelagoMod
                 return false; // Did not connect, show the user the contents of `errorMessage`
             }
             SetupSubscriptions();
-
             Connect($"{Config.Data.hostName}:{Config.Data.port}", $"{Config.Data.slotName}", $"{Config.Data.password}");
             return IsConnected;
         }
@@ -68,7 +67,8 @@ namespace NEOTwewyArchipelagoMod
                 var result = await session.LoginAsync(
                     Core.GAME_NAME,
                     user,
-                    ItemsHandlingFlags.AllItems
+                    ItemsHandlingFlags.AllItems,
+                    password: pass
                 );
 
                 if (result is LoginSuccessful)
@@ -91,7 +91,7 @@ namespace NEOTwewyArchipelagoMod
             try
             {
                 // handle TryConnectAndLogin attempt here and save the returned object to `result`
-                result = session.TryConnectAndLogin(Core.GAME_NAME, user, ItemsHandlingFlags.AllItems);
+                result = session.TryConnectAndLogin(Core.GAME_NAME, user, ItemsHandlingFlags.AllItems, password: pass);
             }
             catch (Exception e)
             {
