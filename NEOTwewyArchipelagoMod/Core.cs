@@ -10,7 +10,7 @@ using static Il2Cpp.ScenarioFlowComicComponent.Starter;
 using static Il2Cpp.SortWindow;
 using static Il2CppUI.Battle.BattlePauseSelectController;
 
-[assembly: MelonInfo(typeof(NEOTwewyArchipelagoMod.Core), "NEOTwewyArchipelagoMod", "0.0.4", "sjerver", null)]
+[assembly: MelonInfo(typeof(NEOTwewyArchipelagoMod.Core), "NEOTwewyArchipelagoMod", "0.0.5", "sjerver", null)]
 [assembly: MelonGame("SQUARE ENIX", "NEO: The World Ends with You")]
 
 namespace NEOTwewyArchipelagoMod
