@@ -2,6 +2,7 @@
 using Il2Cpp;
 using Il2CppHnLib;
 using Il2CppMaster;
+using Il2CppSteamworks;
 using Il2CppUI;
 using Il2CppUI.Controller;
 using Il2CppUI.Panel;
@@ -53,11 +54,12 @@ namespace NEOTwewyArchipelagoMod.HarmonyPatches
 
             GameLocationID gamelocationID = new GameLocationID(shopInfo.mMasterShopGoods.mId);
             ArchipelagoLocationID archiLocation = gamelocationID.ToArchipelagoLocation(LocationType.ShopGood);
-            if (Core.save.TryGetArchipelagoItem(archiLocation, out ArchipelagoItem archiItem))
-            {// If the bought shop good is an archipelago location, mark it as checked
+            //if (Core.save.TryGetArchipelagoItem(archiLocation, out ArchipelagoItem archiItem))
+            //{// If the bought shop good is an archipelago location, mark it as checked
                 
-                Core.save.enqueueLocation(archiLocation);
-            }
+            //    Core.save.enqueueLocation(archiLocation);
+            //}
+            Core.save.enqueueLocation(archiLocation);
         }
 
 
@@ -164,7 +166,7 @@ namespace NEOTwewyArchipelagoMod.HarmonyPatches
                     __instance.mValuablesDescription.mItemNameText.text = $"{archiItem.name}";
                     __instance.mValuablesDescription.mFlavorText.text = $"A pin reminiscent of {archiItem.player}'s {archiItem.itemGame}.";
 
-                    if (archiItem.IsItemFromOurSlot())
+                    if (archiItem.IsItemFromOurSlot() && archiItem.itemType == ItemType.AllItems)
                     {
                         AllItems itemObject = MasterDataBase<AllItems>.Get((int)archiItem.id);
 
@@ -173,7 +175,7 @@ namespace NEOTwewyArchipelagoMod.HarmonyPatches
 
                         __instance.mValuablesDescription.mItemImage.m_Sprite = UISpriteBank.Instance.GetSprite(atlasPath, spriteName);
                     }
-                    
+                    //TODO: Update this for character nodes!!
                 }
             }
 
@@ -195,13 +197,21 @@ namespace NEOTwewyArchipelagoMod.HarmonyPatches
             {
                 if (archiItem.IsItemFromOurSlot())
                 {
-                    AllItems itemObject = MasterDataBase<AllItems>.Get((int)archiItem.id);
+                    if(archiItem.itemType == ItemType.AllItems)
+                    {
+                        AllItems itemObject = MasterDataBase<AllItems>.Get((int)archiItem.id);
 
-                    string atlasPath = UIUtility.GetItemAtlasPath(itemObject);
-                    string spriteName = UIUtility.GetItemImageName(itemObject);
+                        string atlasPath = UIUtility.GetItemAtlasPath(itemObject);
+                        string spriteName = UIUtility.GetItemImageName(itemObject);
+                        __instance.mBadgeImage.m_Sprite = UISpriteBank.Instance.GetSprite(atlasPath, spriteName);
+                    } else if (archiItem.itemType == ItemType.SocialNode)
+                    {
+                        //TODO: Update this for character nodes!!
+                    }
 
-                    __instance.mBadgeImage.m_Sprite = UISpriteBank.Instance.GetSprite(atlasPath, spriteName);
+
                 }
+                
             }
         }
     }

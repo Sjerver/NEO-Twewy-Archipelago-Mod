@@ -63,8 +63,9 @@ namespace NEOTwewyArchipelagoMod.HarmonyPatches
                     //MelonLogger.Msg(item.locationName);
                     DropInfo.DropBadge badge = __instance.mDropBadgeList[i];
                     badge.mBadgeNameText.SetText($"{item.name}");
-                    //TODO: Pin Number -> Game/Slot?
-                    if (item.IsItemFromOurSlot())
+                    badge.mBadgeNoText.SetText($"{item.player}");
+                    
+                    if (item.IsItemFromOurSlot() && item.itemType == ItemType.AllItems)
                     {
                         AllItems itemObject = MasterDataBase<AllItems>.Get((int)item.id);
 
@@ -74,7 +75,7 @@ namespace NEOTwewyArchipelagoMod.HarmonyPatches
                         //MelonLogger.Msg($"{atlasPath} atlas -> spriteName {spriteName}");
 
                         badge.mBadgeImage.m_Sprite = UISpriteBank.Instance.GetSprite(atlasPath, spriteName);
-                    }
+                    } //TODO: Update this for character nodes!!
                 }
             }
         }

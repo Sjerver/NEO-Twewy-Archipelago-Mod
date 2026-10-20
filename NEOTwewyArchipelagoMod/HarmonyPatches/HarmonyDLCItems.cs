@@ -32,10 +32,10 @@ namespace NEOTwewyArchipelagoMod.HarmonyPatches
                 {
                     Core.save.enqueueLocation(locationID);
                     //Items are always send by server so just need this requirement
-                    if (item.id == Core.ARCHIPELAGO_ITEM_ID)
-                    {
-                        Core.archiItemDisplayQueue.Enqueue(item);
-                    }
+                    //if (item.id == Core.ARCHIPELAGO_ITEM_ID)
+                    //{
+                    //    Core.archiItemDisplayQueue.Enqueue(item);
+                    //}
                 }
             }
 

@@ -29,13 +29,13 @@ namespace NEOTwewyArchipelagoMod.HarmonyPatches
                 Core.save.enqueueLocation(locationID);
 
 
-                if (Core.save.TryGetArchipelagoItem(locationID, out ArchipelagoItem item))
-                { 
-                    if (item.id == Core.ARCHIPELAGO_ITEM_ID)
-                    { //If the item is an archipelago item, we get from a vanilla reward. We want to still get a pop-up for what item we are sending
-                        Core.archiItemDisplayQueue.Enqueue(item);
-                    }
-                }
+                //if (Core.save.TryGetArchipelagoItem(locationID, out ArchipelagoItem item))
+                //{ 
+                //    if (item.id == Core.ARCHIPELAGO_ITEM_ID)
+                //    { //If the item is an archipelago item, we get from a vanilla reward. We want to still get a pop-up for what item we are sending
+                //        Core.archiItemDisplayQueue.Enqueue(item);
+                //    }
+                //}
 
                 return false; //Don't call actual method to give the actual reward
             }
@@ -59,56 +59,6 @@ namespace NEOTwewyArchipelagoMod.HarmonyPatches
             //Auto Save that after we get an item
             FieldManager.Instance.CallReserveAutoSave();
 
-        }
-    }
-
-    [HarmonyPatch(typeof(DialogGetUI))]
-    public static class PatchDialogGetUI  
-    {
-        //Item of the currently to open dialogGetUI
-        private static ArchipelagoItem currentItem = null;
-
-        [HarmonyPrefix]
-        [HarmonyPatch("OpenItemGetDialog")]
-        public static void PreItemGetDialog(AllItems.ELabel itemID, ref int num, Il2CppSystem.Action onUIEndEvent, Il2CppSystem.Action<DialogGetUI> onEnded) 
-        {
-            if (num < 0) //&& (long)itemID == Core.ARCHIPELAGO_ITEM_ID
-            {
-                //MelonLogger.Msg($"Received location {-(num)} as Archipelago Item dialogue");  
-                ArchipelagoLocationID locationID = new ArchipelagoLocationID(-(num)); 
-                if (Core.save.TryGetArchipelagoItem(locationID, out ArchipelagoItem item)) 
-                { 
-                    //MelonLogger.Msg($"Storing item {item.name} ({item.id}) as current"); 
-                    currentItem = item; 
-                } else { 
-                    currentItem = null; 
-                }
-                num = 1;
-            } else
-            {
-                //MelonLogger.Msg($"{itemID} and {num} with {onUIEndEvent.Method.Name} and {onEnded.Method.Name}");
-                //MelonLogger.Msg($"onUIEndEvent declaring type: {onUIEndEvent.Method.DeclaringType}");
-                //MelonLogger.Msg($"onEnded declaring type: {onEnded.Method.DeclaringType}");
-            }
-        }
-
-        [HarmonyPostfix]
-        [HarmonyPatch("Initialize")]
-        public static void PostInitialize(DialogGetUI __instance) 
-        { 
-            //MelonLogger.Msg($"Initializing for {(long)__instance.ItemId}"); 
-            if (__instance.ItemId != (AllItems.ELabel)Core.ARCHIPELAGO_ITEM_ID) return; 
-            if (currentItem == null)
-            {
-                //MelonLogger.Msg($"No current item detected");
-                return;
-            } 
-            //MelonLogger.Msg($"Changing text for {currentItem.name}"); 
-
-            __instance.SetMainText(currentItem.name); 
-            __instance.SetSubText($"A pin reminiscent of {currentItem.player}'s {currentItem.itemGame}."); 
-
-            currentItem = null; 
         }
     }
 

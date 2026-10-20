@@ -37,8 +37,6 @@ namespace NEOTwewyArchipelagoMod.HarmonyPatches
                 if (Core.save.TryGetArchipelagoItem(locationID, out ArchipelagoItem item))
                 {
                     //MelonLogger.Msg($"Item {item.name} has been gotten");
-                    Core.save.enqueueLocation(locationID);
-
                     if (item.id == NEOTwewyDataManager.DIVE_FP_ID)
                     {
                         //MelonLogger.Msg("FP Dive Reward");
@@ -50,17 +48,18 @@ namespace NEOTwewyArchipelagoMod.HarmonyPatches
                         prize.PrizeType = BattleResultUI.PrizeInfo.Type.Item;
                         prize.CharacterPt = 0;
 
-                        AllItems itemObject = MasterDataBase<AllItems>.Get((int)item.id);
-                        prize.Item = (AllItems.ELabel)itemObject.mId;
-                        if(item.count > 1) { 
-                            //If Count is more than 1 show archipelaog item in "immediate reward" screen and reward real item later
+                        if (item.id == Core.ARCHIPELAGO_ITEM_ID || item.itemType != ItemType.AllItems ||item.count > 1) { 
+                            //If Count is more than 1 or archipelago item id or non AllItem
                             prize.Item = (AllItems.ELabel)Core.ARCHIPELAGO_ITEM_ID;
-                            Core.archiItemDisplayQueue.Enqueue(item);
+                        } else{ 
+                            //Normal Item
+                            AllItems itemObject = MasterDataBase<AllItems>.Get((int)item.id);
+                            prize.Item = (AllItems.ELabel)itemObject.mId;
                         }
-                        if (item.id == Core.ARCHIPELAGO_ITEM_ID){
-                            Core.archiItemDisplayQueue.Enqueue(item);
-                        }
+                        
                     }
+
+                    Core.save.enqueueLocation(locationID);
                 }
                 __instance.mDivePrizeList[index] = prize;
             }
@@ -104,18 +103,18 @@ namespace NEOTwewyArchipelagoMod.HarmonyPatches
             //#TODO Consider moving this to where calc takes place? So we dont trigger "BLING"
             if (ModOptions.prevent_out_of_logic && !DropRateCalc.DropRateReached(archiLocation)) { return false; }
 
-            if (Core.save.TryGetArchipelagoItem(archiLocation, out ArchipelagoItem actualItem))
-            {
-                //MelonLogger.Msg($"Now is Badge {badge} from {recordID} on {difficulty} aka {actualItem.locationName}");
+            //if (Core.save.TryGetArchipelagoItem(archiLocation, out ArchipelagoItem actualItem))
+            //{
+            //    //MelonLogger.Msg($"Now is Badge {badge} from {recordID} on {difficulty} aka {actualItem.locationName}");
 
-                if (actualItem.id == Core.ARCHIPELAGO_ITEM_ID && !Core.save.IsLocationChecked(archiLocation))
-                {
-                    Core.archiItemDisplayQueue.Enqueue(actualItem);
-                }
+            //    if (actualItem.id == Core.ARCHIPELAGO_ITEM_ID && !Core.save.IsLocationChecked(archiLocation))
+            //    {
+            //        Core.archiItemDisplayQueue.Enqueue(actualItem);
+            //    }
 
-                Core.save.enqueueLocation(archiLocation);
-            }
 
+            //}
+            Core.save.enqueueLocation(archiLocation);
             return true;
             
         }
@@ -138,16 +137,17 @@ namespace NEOTwewyArchipelagoMod.HarmonyPatches
             GameLocationID gameID = new(pigData.mId);
             ArchipelagoLocationID archiLocation = gameID.ToArchipelagoLocation(LocationType.PigDrop);
 
-            if (Core.save.TryGetArchipelagoItem(archiLocation, out ArchipelagoItem actualItem))
-            {
-                //MelonLogger.Msg($"Pig ID : {PigManager.PigManagerInstance.Pigdata.Id} Pig Drop: {PigManager.PigManagerInstance.Pigdata.Drop}");
-                if (actualItem.id == Core.ARCHIPELAGO_ITEM_ID && !Core.save.IsLocationChecked(archiLocation))
-                {
-                    Core.archiItemDisplayQueue.Enqueue(actualItem);
-                }
+            //if (Core.save.TryGetArchipelagoItem(archiLocation, out ArchipelagoItem actualItem))
+            //{
+            //    //MelonLogger.Msg($"Pig ID : {PigManager.PigManagerInstance.Pigdata.Id} Pig Drop: {PigManager.PigManagerInstance.Pigdata.Drop}");
+            //    if (actualItem.id == Core.ARCHIPELAGO_ITEM_ID && !Core.save.IsLocationChecked(archiLocation))
+            //    {
+            //        Core.archiItemDisplayQueue.Enqueue(actualItem);
+            //    }
 
-                Core.save.enqueueLocation(archiLocation);
-            }
+               
+            //}
+            Core.save.enqueueLocation(archiLocation);
         }
 
     }

@@ -72,7 +72,7 @@ namespace NEOTwewyArchipelagoMod
         public void setSeed(string seed) { Data.Seed = seed; Save(); }
 
         public void UpdateSlotData(Dictionary<string, object> slotData)
-        {
+        {//TODO: move slot data handling to ModOptions?
             if (Core.syncState == SyncState.WrongSeed) { return; }
             foreach (KeyValuePair<string, object> entry in slotData)
             {
@@ -191,9 +191,95 @@ namespace NEOTwewyArchipelagoMod
             return Data.rewardQueue.Count;
         }
 
-        public  void enqueueLocation(ArchipelagoLocationID location)
+        public void enqueueLocation(ArchipelagoLocationID location)
         {
             if (Core.syncState == SyncState.WrongSeed) { return; }
+
+            if (IsLocationChecked(location)) { return; }
+
+            if (TryGetArchipelagoItem(location, out ArchipelagoItem item))
+            {//Get valid Archipelago Item
+                bool archipelagoItemCheck = false;
+                bool customDisplay = false;
+
+                LocationType type = location.GetLocationType();
+                switch (type)
+                {
+                    case LocationType.ScenarioReward:
+                    //Also CheckEndOfChapterReward
+                    //"Normal Items" get stopped and handled via server
+                    //Archipelago Items need display that they were found
+                    case LocationType.DLC:
+                    //DLC is always handled by server
+                        archipelagoItemCheck = true;
+                        break;
+
+                    case LocationType.DiveReward:
+                        //FP and 1x count items can be displayed normally
+                        //Therfore we cant let everything be handled via receivedItems
+                        archipelagoItemCheck = true;
+                        if ((item.id != NEOTwewyDataManager.DIVE_FP_ID && item.count > 1) || item.itemType != ItemType.AllItems)
+                        {
+                            customDisplay = true;
+                        }
+                        break;
+
+                    case LocationType.NoiseDrop:
+                    case LocationType.PigDrop:
+                        //Badges can be done normally, count 1 only
+                        //Therfore we cant let everything be handled via receivedItems
+
+                        archipelagoItemCheck = true;
+                        //With this we get non badges doubled, in the old code we only needed custom display for other game items, rest is handled by server
+                        //if(item.itemType == ItemType.AllItems)
+                        //{
+                        //    //Check if its also a not a badge or more than one
+                        //    AllItems itemObject = MasterDataBase<AllItems>.Get((int)item.id);
+                        //    ItemConst.EItemType allItemType = itemObject.ItemType;
+                        //    if (allItemType != ItemConst.EItemType.Badge || item.count != 1) { customDisplay = true; }
+                        //} else
+                        //{
+                        //    customDisplay = true;
+                        //}
+                        break;
+
+                    case LocationType.ShopGood:
+                        //Shops can display archi items naturally
+                        //Non-shop items like FP or non AllItems are handled via server
+                        break;
+
+                    case LocationType.Vanilla:
+                    case LocationType.ArchipelagoReceive:
+                        break;
+
+                    default:
+                        MelonLogger.Error($"No custom item handling for location type {type}");
+                        break;
+                    }
+
+                if (archipelagoItemCheck && item.id == Core.ARCHIPELAGO_ITEM_ID) { customDisplay = true;}
+                if (customDisplay)
+                {
+                    switch (item.itemType)
+                    {
+                        case ItemType.AllItems:
+                        case ItemType.OtherGame:
+                            Core.archiItemDisplayQueue.Enqueue(item);
+                            break;
+
+                        case ItemType.SocialNode:
+                            MelonLogger.MsgDirect(MelonLoader.Logging.ColorARGB.Red,"CharacterNode item not implemented yet");
+                            //TODO: Is this ever needed???
+                            break;
+
+                        default:
+                            MelonLogger.Error($"No custom item handling for item type {item.itemType}");
+                            break;
+                    }
+                }
+            }
+        
+                
             Data.pendingLocations.Enqueue(location);
             addCheckedLocation(location);
             Save();
@@ -285,7 +371,8 @@ namespace NEOTwewyArchipelagoMod
                     info.ItemId,
                     info.ItemGame,
                     itemCount,
-                    info.Player.Name
+                    info.Player.Name,
+                    itemType
                 );
         }
     }

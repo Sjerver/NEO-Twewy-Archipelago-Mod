@@ -189,8 +189,10 @@ namespace NEOTwewyArchipelagoMod
         public long count { get; set; }
         public string player { get; set; }
 
+        public ItemType itemType { get; set; }
 
-        public ArchipelagoItem(long id, string name, ArchipelagoLocationID locationID, string locationName, long archipelagoID, string itemGame, long count, string player)
+
+        public ArchipelagoItem(long id, string name, ArchipelagoLocationID locationID, string locationName, long archipelagoID, string itemGame, long count, string player, ItemType type)
         {
             this.id = id;
             this.name = name;
@@ -200,6 +202,7 @@ namespace NEOTwewyArchipelagoMod
             this.itemGame = itemGame;
             this.count = count;
             this.player = player;
+            this.itemType = type;
         }
         
         public bool IsItemFromOurSlot()
@@ -214,7 +217,7 @@ namespace NEOTwewyArchipelagoMod
         OtherGame,
         AllItems,
         Skill,
-        CharacterNode
+        SocialNode
     }
 
     public enum LocationType

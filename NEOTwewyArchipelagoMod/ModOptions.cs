@@ -28,8 +28,7 @@ namespace NEOTwewyArchipelagoMod
             {
                 typeof(ModOptions).GetField(key).SetValue(null, (DLCOption)Convert.ToInt32(value));
             }
-            else
-            {
+            else {
                 MelonLogger.Error($"Option {key} cannot be converted");
             }
             MelonLogger.Msg($"{key} = {typeof(ModOptions).GetField(key).GetValue(null)}");
