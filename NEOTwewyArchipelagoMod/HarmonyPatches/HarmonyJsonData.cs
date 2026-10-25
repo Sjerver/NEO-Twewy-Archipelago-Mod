@@ -164,19 +164,21 @@ namespace NEOTwewyArchipelagoMod.HarmonyPatches
                 //    __result = root.ToString();
             }
 
-            else if (assetName.Contains("SkillTree"))
+            else if (assetName.Contains("SkillTree.txt"))
             {
-                //    MelonLogger.Msg("Reading SkillTree");
+                //MelonLogger.Msg("Editing SkillTree");
 
-                //    JObject root = JObject.Parse(__result);
+                JObject root = JObject.Parse(__result);
+                JArray targets = (JArray)root["mTarget"];
 
-                //    JArray targets = (JArray)root["mTarget"];
+                for (int i = 0; i < targets.Count; i++)
+                {
+                    //MelonLogger.Msg(targets[i].ToString());
+                    targets[i]["mEntryDay"] = (int)DayInfo.ELabel.Day_w1d0;
+                }
 
-                //    targets[0]["mSkill"] = 99; //The game did not like displaying this one
-
-                //    __result = root.ToString();
+                __result = root.ToString();
             }
-
             else if (assetName.Contains("Chapter"))
             {
                 //    Test recruiting character in replaying chapter: Shoka did not join in w2d5
