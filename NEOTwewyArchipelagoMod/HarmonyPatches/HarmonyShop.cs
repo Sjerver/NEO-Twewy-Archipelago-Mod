@@ -72,28 +72,41 @@ namespace NEOTwewyArchipelagoMod.HarmonyPatches
         [HarmonyPatch("UpdateParam")]
         public static void MoneyPinShop(ShopItemUIInfo __instance)
         {
-            if (__instance.MasterBadge is not null)
-            { //Is the relevant item a badge?
-                if (__instance.MasterBadge.mBadgeCategory == ItemConst.EBadgeCategoryType.Money)
-                {// Is it a money badge/pin?
-                    //MelonLogger.Msg("Money pin custom handling");
-                    int currentlyOwnedAmount = SaveLoadController.Get<SaveDataBadge>().GetStackCount((Badge.ELabel)__instance.MasterBadge.ItemId);
-                    if (__instance.mMasterShopGoods.mExchange == GoodsExchange.ELabel.Invalid && currentlyOwnedAmount < 99)
-                    {//Is this not an exchange good and we have less than 99 of the pin
-                        GameLocationID id = new GameLocationID(__instance.mMasterShopGoods.Id);
-                        int timesBoughtGood = SaveLoadController.Get<SaveDataShop>().GetShopGoodsPurchases((ShopGoods.ELabel)id.Value);
+            int currentlyOwnedAmount = SaveLoadController.Get<SaveDataBadge>().GetStackCount((Badge.ELabel)__instance.MasterBadge.ItemId);
+            GameLocationID id = new GameLocationID(__instance.mMasterShopGoods.Id);
+            int timesBoughtGood = SaveLoadController.Get<SaveDataShop>().GetShopGoodsPurchases((ShopGoods.ELabel)id.Value);
 
-                        ArchipelagoLocationID arch_loc = id.ToArchipelagoLocation(LocationType.ShopGood);
-                        Core.save.TryGetArchipelagoItem(arch_loc, out ArchipelagoItem archiItem);
-                        //MelonLogger.Msg($"Money pin {archiItem.name} currentlyOwnedAmount: {currentlyOwnedAmount} Location {archiItem.locationName} timesBought {timesBoughtGood} currentlyToSellMax {__instance.mMasterShopGoods.GetItemCountNow()} ");
+            ArchipelagoLocationID arch_loc = id.ToArchipelagoLocation(LocationType.ShopGood);
+            Core.save.TryGetArchipelagoItem(arch_loc, out ArchipelagoItem archiItem);
+            //MelonLogger.Msg($"Money pin {archiItem.name} currentlyOwnedAmount: {currentlyOwnedAmount} Location {archiItem.locationName} timesBought {timesBoughtGood} currentlyToSellMax {__instance.mMasterShopGoods.GetItemCountNow()} ");
+
+            //Only mark the item as sold out if the player has bought all the items available in the shop good instead of checking player inventory
+            int itemCountNow = __instance.mMasterShopGoods.GetItemCountNow();
+            __instance.IsSoldOut = timesBoughtGood >= itemCountNow;
+            //MelonLogger.Msg($"Money pin is soldOut? {__instance.IsSoldOut}");
+
+            //if (__instance.MasterBadge is not null)
+            //{ //Is the relevant item a badge?
+            //    if (__instance.MasterBadge.mBadgeCategory == ItemConst.EBadgeCategoryType.Money)
+            //    {// Is it a money badge/pin?
+            //        //MelonLogger.Msg("Money pin custom handling");
+            //        int currentlyOwnedAmount = SaveLoadController.Get<SaveDataBadge>().GetStackCount((Badge.ELabel)__instance.MasterBadge.ItemId);
+            //        if (__instance.mMasterShopGoods.mExchange == GoodsExchange.ELabel.Invalid && currentlyOwnedAmount < 99)
+            //        {//Is this not an exchange good and we have less than 99 of the pin
+            //            GameLocationID id = new GameLocationID(__instance.mMasterShopGoods.Id);
+            //            int timesBoughtGood = SaveLoadController.Get<SaveDataShop>().GetShopGoodsPurchases((ShopGoods.ELabel)id.Value);
+
+            //            ArchipelagoLocationID arch_loc = id.ToArchipelagoLocation(LocationType.ShopGood);
+            //            Core.save.TryGetArchipelagoItem(arch_loc, out ArchipelagoItem archiItem);
+            //            //MelonLogger.Msg($"Money pin {archiItem.name} currentlyOwnedAmount: {currentlyOwnedAmount} Location {archiItem.locationName} timesBought {timesBoughtGood} currentlyToSellMax {__instance.mMasterShopGoods.GetItemCountNow()} ");
                         
-                        //Only mark the item as sold out if the player has bought all the items available in the shop good instead of checking player inventory
-                        int itemCountNow = __instance.mMasterShopGoods.GetItemCountNow();
-                        __instance.IsSoldOut = timesBoughtGood >= itemCountNow;
-                        //MelonLogger.Msg($"Money pin is soldOut? {__instance.IsSoldOut}");
-                    }
-                }
-            }
+            //            //Only mark the item as sold out if the player has bought all the items available in the shop good instead of checking player inventory
+            //            int itemCountNow = __instance.mMasterShopGoods.GetItemCountNow();
+            //            __instance.IsSoldOut = timesBoughtGood >= itemCountNow;
+            //            //MelonLogger.Msg($"Money pin is soldOut? {__instance.IsSoldOut}");
+            //        }
+            //    }
+            //}
         }
     }
 
