@@ -1,4 +1,5 @@
-﻿using Archipelago.MultiClient.Net.Models;
+﻿using Archipelago.MultiClient.Net.Enums;
+using Archipelago.MultiClient.Net.Models;
 using Harmony;
 using Il2Cpp;
 using Il2CppMaster;
@@ -26,6 +27,7 @@ namespace NEOTwewyArchipelagoMod
 
         public static long DLC_LOCATION_MODIFIER = 1_900_000;
         public static long SCENARIO_LOCATION_MODIFIER   = 1_000_000;
+        public static long SOCIAL_NODE_LOCATION_MODIFIER = 500_000;
         public static long PIG_DROP_MODIFIER            = 410_000;
         public static long NOISE_DROP_MODIFIER          = 400_000;
         public static long DIVE_LOCATION_MODIFIER       = 300_000;
@@ -53,6 +55,10 @@ namespace NEOTwewyArchipelagoMod
             else if (id >= SCENARIO_LOCATION_MODIFIER)
             {
                 return LocationType.ScenarioReward;
+            }
+            else if (id >= SOCIAL_NODE_LOCATION_MODIFIER)
+            {
+                return LocationType.SocialNode;
             }
             else if (id >= PIG_DROP_MODIFIER)
             {
@@ -95,6 +101,9 @@ namespace NEOTwewyArchipelagoMod
                 case LocationType.ScenarioReward:
                     gameID = gameID - SCENARIO_LOCATION_MODIFIER;
                     break;
+                case LocationType.SocialNode:
+                    gameID += SOCIAL_NODE_LOCATION_MODIFIER;
+                    break;
                 case LocationType.ShopGood:
                     gameID = gameID - SHOP_LOCATION_MODIFIER;
                     break;
@@ -132,6 +141,9 @@ namespace NEOTwewyArchipelagoMod
                     break;
                 case LocationType.ScenarioReward:
                     archiID = archiID + SCENARIO_LOCATION_MODIFIER;
+                    break;
+                case LocationType.SocialNode:
+                    archiID += SOCIAL_NODE_LOCATION_MODIFIER;
                     break;
                 case LocationType.ShopGood:
                     archiID = archiID + SHOP_LOCATION_MODIFIER;
@@ -191,7 +203,9 @@ namespace NEOTwewyArchipelagoMod
 
         public ItemType itemType { get; set; }
 
+        public ItemFlags flags { get; set; } = ItemFlags.None;
 
+        [JsonConstructor]
         public ArchipelagoItem(long id, string name, ArchipelagoLocationID locationID, string locationName, long archipelagoID, string itemGame, long count, string player, ItemType type)
         {
             this.id = id;
@@ -203,8 +217,32 @@ namespace NEOTwewyArchipelagoMod
             this.count = count;
             this.player = player;
             this.itemType = type;
+
         }
-        
+
+        public ArchipelagoItem(long id, ScoutedItemInfo info)
+        {
+            long itemCount = 1;
+            ItemType itemType = ItemType.OtherGame;
+            if (info.ItemGame == Core.GAME_NAME && info.Player.Name == Config.Data.slotName)
+            {
+                itemCount = NEOTwewyDataManager.item_data[info.ItemName].count;
+                itemType = NEOTwewyDataManager.item_data[info.ItemName].type;
+            }
+
+            this.id = id;
+            name = info.ItemName;
+            locationID = new ArchipelagoLocationID(info.LocationId);
+            locationName = info.LocationName;
+            archipelagoID = info.ItemId;
+            itemGame = info.ItemGame;
+            count = itemCount;
+            player = info.Player.Name;
+            this.itemType = itemType;
+            flags = info.Flags;
+        }
+
+
         public bool IsItemFromOurSlot()
         {
             return itemGame == Core.GAME_NAME && player == Config.Data.slotName;
@@ -217,7 +255,8 @@ namespace NEOTwewyArchipelagoMod
         OtherGame,
         AllItems,
         Skill,
-        SocialNode
+        SocialNode,
+        VIP
     }
 
     public enum LocationType
@@ -230,7 +269,8 @@ namespace NEOTwewyArchipelagoMod
         NoiseDrop,
         Skill,
         PigDrop,
-        DLC
+        DLC,
+        SocialNode
     }
 
     [TypeConverter(typeof(GameLocationIDTypeConverter))]
@@ -246,5 +286,10 @@ namespace NEOTwewyArchipelagoMod
         public GameLocationID ToGameLocation() => ArchipelagoData.GetGameLocation(this);
 
         public LocationType GetLocationType() => ArchipelagoData.GetLocationType(this);
+
+        public bool IsInSeed()
+        {
+            return Core.save.IsLocationInSeed(this);
+        }
     }
 }

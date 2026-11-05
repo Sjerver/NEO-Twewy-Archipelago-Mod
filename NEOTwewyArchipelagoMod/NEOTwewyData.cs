@@ -1,10 +1,13 @@
 ﻿using Il2Cpp;
 using MelonLoader;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using UnityEngine.Playables;
 
 namespace NEOTwewyArchipelagoMod
 {
@@ -12,6 +15,9 @@ namespace NEOTwewyArchipelagoMod
 
     public static class NEOTwewyDataManager
     {
+        private static string SHOP_NODE_PATH = "Mods/NeoTwewyArchipelago/Data/shop_social_nodes.json";
+
+
         /// <summary>
         /// List of items that need to be represented as archipelago items in shops
         /// </summary>
@@ -895,10 +901,51 @@ namespace NEOTwewyArchipelagoMod
             {"(CD) Track 51", new NEOTwewyItemData(32049,32049)},
             {"(CD) Track 31", new NEOTwewyItemData(32050,32050)},
             {"Item", new NEOTwewyItemData(33000,33000)},
-            {"5 FP", new NEOTwewyItemData(33001,30000, 5)},
-            {"3x Rare Metal", new NEOTwewyItemData(33002,5101, 3)},
-            {"3x Tektite", new NEOTwewyItemData(33003,5102, 3)},
-            {"2 FP", new NEOTwewyItemData(33004,30000, 2)},
+            {"5 FP", new NEOTwewyItemData(33001,30000,5)},
+            {"3x Rare Metal", new NEOTwewyItemData(33002,5101,3)},
+            {"3x Tektite", new NEOTwewyItemData(33003,5102,3)},
+            {"2 FP", new NEOTwewyItemData(33004,30000,2)},
+            {"SNS Node: Rindo Kanade", new NEOTwewyItemData(50000,0, type: ItemType.SocialNode )},
+            {"SNS Node: Tosai 'Fret' Furesawa", new NEOTwewyItemData(50003,3, type: ItemType.SocialNode )},
+            {"SNS Node: Nagi Usui", new NEOTwewyItemData(50004,4, type: ItemType.SocialNode )},
+            {"SNS Node: Sho Minamimoto", new NEOTwewyItemData(50007,7, type: ItemType.SocialNode )},
+            {"SNS Node: Eiji Oji", new NEOTwewyItemData(50026,26, type: ItemType.SocialNode )},
+            {"SNS Node: Kohei Toyohashi", new NEOTwewyItemData(50028,28, type: ItemType.SocialNode )},
+            {"SNS Node: Katsuhiko Tanimaru", new NEOTwewyItemData(50033,33, type: ItemType.SocialNode )},
+            {"SNS Node: Jun Sonobe", new NEOTwewyItemData(50064,64, type: ItemType.SocialNode )},
+            {"SNS Node: Akari Minamino", new NEOTwewyItemData(50065,65, type: ItemType.SocialNode )},
+            {"SNS Node: Sakura Koga", new NEOTwewyItemData(50066,66, type: ItemType.SocialNode )},
+            {"SNS Node: Miharu Nakano", new NEOTwewyItemData(50067,67, type: ItemType.SocialNode )},
+            {"SNS Node: Yudai Miki", new NEOTwewyItemData(50068,68, type: ItemType.SocialNode )},
+            {"SNS Node: Kaoru Nitobe", new NEOTwewyItemData(50069,69, type: ItemType.SocialNode )},
+            {"SNS Node: Michihisa Tadashima", new NEOTwewyItemData(50070,70, type: ItemType.SocialNode )},
+            {"SNS Node: Jo Makita", new NEOTwewyItemData(50071,71, type: ItemType.SocialNode )},
+            {"SNS Node: Rei Mogi", new NEOTwewyItemData(50072,72, type: ItemType.SocialNode )},
+            {"SNS Node: Sumire Chiba", new NEOTwewyItemData(50073,73, type: ItemType.SocialNode )},
+            {"SNS Node: Genzo Koitabashi", new NEOTwewyItemData(50075,75, type: ItemType.SocialNode )},
+            {"SNS Node: Hirofumi Itoguchi", new NEOTwewyItemData(50076,76, type: ItemType.SocialNode )},
+            {"SNS Node: Sayoko Morohoshi", new NEOTwewyItemData(50077,77, type: ItemType.SocialNode )},
+            {"SNS Node: Rina Todo", new NEOTwewyItemData(50081,81, type: ItemType.SocialNode )},
+            {"SNS Node: Mai Iseya", new NEOTwewyItemData(50082,82, type: ItemType.SocialNode )},
+            {"SNS Node: Miki Saionji", new NEOTwewyItemData(50083,83, type: ItemType.SocialNode )},
+            {"SNS Node: Ken Doi", new NEOTwewyItemData(50087,87, type: ItemType.SocialNode )},
+            {"SNS Node: Aadiv", new NEOTwewyItemData(50088,88, type: ItemType.SocialNode )},
+            {"SNS Node: Suzu Ito", new NEOTwewyItemData(50089,89, type: ItemType.SocialNode )},
+            {"SNS Node: Masaya", new NEOTwewyItemData(50090,90, type: ItemType.SocialNode )},
+            {"SNS Node: Tsukihime", new NEOTwewyItemData(50091,91, type: ItemType.SocialNode )},
+            {"SNS Node: Izumi Ariyoshi", new NEOTwewyItemData(50092,92, type: ItemType.SocialNode )},
+            {"SNS Node: Shinobu Sato", new NEOTwewyItemData(50093,93, type: ItemType.SocialNode )},
+            {"SNS Node: Rieko Kawahara", new NEOTwewyItemData(50094,94, type: ItemType.SocialNode )},
+            {"Progressive VIP Joli bécot", new NEOTwewyItemData(300002,2, type: ItemType.VIP )},
+            {"Progressive VIP Top o' Topo", new NEOTwewyItemData(300001,1, type: ItemType.VIP )},
+            {"Progressive VIP Gatto Nero", new NEOTwewyItemData(300013,13, type: ItemType.VIP )},
+            {"Progressive VIP Shepherd House", new NEOTwewyItemData(300008,8, type: ItemType.VIP )},
+            {"Progressive VIP HOG FANG", new NEOTwewyItemData(300012,12, type: ItemType.VIP )},
+            {"Progressive VIP garagara", new NEOTwewyItemData(300006,6, type: ItemType.VIP )},
+            {"Progressive VIP Cony×Cony", new NEOTwewyItemData(300004,4, type: ItemType.VIP )},
+            {"Progressive VIP Tigre PUNKS", new NEOTwewyItemData(300003,3, type: ItemType.VIP )},
+            {"Progressive VIP RyuGu", new NEOTwewyItemData(300005,5, type: ItemType.VIP )},
+
 
         };
 
@@ -929,6 +976,30 @@ namespace NEOTwewyArchipelagoMod
             {23, 53 },
             {24, 80 },
         };
+
+        public static Dictionary<int, List<int>> SHOP_TO_NODES = new() { };
+
+        public static void Initialize()
+        {
+            if (File.Exists(SHOP_NODE_PATH))
+            {
+                string json = File.ReadAllText(SHOP_NODE_PATH);
+                try
+                {
+                    SHOP_TO_NODES = JsonConvert.DeserializeObject<Dictionary<int, List<int>>>(json);
+                }
+                catch (Exception e)
+                {
+                    MelonLogger.Error(e);
+                    MelonLogger.MsgDirect(MelonLoader.Logging.ColorARGB.Red, "File missing, please make sure you installed the mod correctly!");
+                    return;
+                } 
+            } else
+            {
+                MelonLogger.MsgDirect(MelonLoader.Logging.ColorARGB.Red, "File missing, please make sure you installed the mod correctly!");
+            }
+        }
+
     }
 
     public class NEOTwewyItemData(int archi_id, int game_id, int count = 1, int drop_rate = 0, ItemType type = ItemType.AllItems)

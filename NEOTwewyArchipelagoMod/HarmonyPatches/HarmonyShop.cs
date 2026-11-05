@@ -1,20 +1,27 @@
-﻿using HarmonyLib;
+﻿using Archipelago.MultiClient.Net.Enums;
+using HarmonyLib;
 using Il2Cpp;
 using Il2CppHnLib;
+using Il2CppInterop.Runtime;
 using Il2CppMaster;
 using Il2CppSteamworks;
 using Il2CppUI;
 using Il2CppUI.Controller;
+using Il2CppUI.MainMenu;
+using Il2CppUI.MainMenu.Badge;
 using Il2CppUI.Panel;
 using Il2CppUI.Shop;
 using Il2CppUI.Utility;
+using JetBrains.Annotations;
 using MelonLoader;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using UnityEngine;
 using static Il2Cpp.SaveDataShop;
+using static Il2CppTMPro.SpriteAssetUtilities.TexturePacker;
 using static MelonLoader.MelonLogger;
 
 namespace NEOTwewyArchipelagoMod.HarmonyPatches
@@ -34,16 +41,6 @@ namespace NEOTwewyArchipelagoMod.HarmonyPatches
             Initialization.InitializeShopGoods();
         }
 
-        //[HarmonyPostfix]
-        //[HarmonyPatch("CreateUIInfoData")]
-        //public static void Postfix(ShopScrollController __instance, UIInfoBase __result)
-        //{
-        //    var shopInfo = __result.TryCast<ShopItemUIInfo>();
-        //    if (shopInfo == null)
-        //        return;
-        //    if (Core.DEBUG) { MelonLogger.Msg($"ShopGoods ID: {shopInfo.mMasterShopGoods.mId} with {shopInfo.mMasterShopGoods.mItem}"); }
-        //}
-
         [HarmonyPrefix]
         [HarmonyPatch("Purchace")]
         public static void Purchase(ShopScrollController __instance, int purchaseCount)
@@ -54,11 +51,6 @@ namespace NEOTwewyArchipelagoMod.HarmonyPatches
 
             GameLocationID gamelocationID = new GameLocationID(shopInfo.mMasterShopGoods.mId);
             ArchipelagoLocationID archiLocation = gamelocationID.ToArchipelagoLocation(LocationType.ShopGood);
-            //if (Core.save.TryGetArchipelagoItem(archiLocation, out ArchipelagoItem archiItem))
-            //{// If the bought shop good is an archipelago location, mark it as checked
-                
-            //    Core.save.enqueueLocation(archiLocation);
-            //}
             Core.save.enqueueLocation(archiLocation);
         }
 
@@ -78,20 +70,20 @@ namespace NEOTwewyArchipelagoMod.HarmonyPatches
                 if (__instance.MasterBadge.mBadgeCategory == ItemConst.EBadgeCategoryType.Money)
                 {// Is it a money badge/pin?
                     //MelonLogger.Msg("Money pin custom handling");
-            int currentlyOwnedAmount = SaveLoadController.Get<SaveDataBadge>().GetStackCount((Badge.ELabel)__instance.MasterBadge.ItemId);
+                    int currentlyOwnedAmount = SaveLoadController.Get<SaveDataBadge>().GetStackCount((Badge.ELabel)__instance.MasterBadge.ItemId);
                     if (__instance.mMasterShopGoods.mExchange == GoodsExchange.ELabel.Invalid && currentlyOwnedAmount < 99)
                     {//Is this not an exchange good and we have less than 99 of the pin
-            GameLocationID id = new GameLocationID(__instance.mMasterShopGoods.Id);
-            int timesBoughtGood = SaveLoadController.Get<SaveDataShop>().GetShopGoodsPurchases((ShopGoods.ELabel)id.Value);
+                        GameLocationID id = new GameLocationID(__instance.mMasterShopGoods.Id);
+                        int timesBoughtGood = SaveLoadController.Get<SaveDataShop>().GetShopGoodsPurchases((ShopGoods.ELabel)id.Value);
 
-            ArchipelagoLocationID arch_loc = id.ToArchipelagoLocation(LocationType.ShopGood);
-            Core.save.TryGetArchipelagoItem(arch_loc, out ArchipelagoItem archiItem);
-            //MelonLogger.Msg($"Money pin {archiItem.name} currentlyOwnedAmount: {currentlyOwnedAmount} Location {archiItem.locationName} timesBought {timesBoughtGood} currentlyToSellMax {__instance.mMasterShopGoods.GetItemCountNow()} ");
+                        ArchipelagoLocationID arch_loc = id.ToArchipelagoLocation(LocationType.ShopGood);
+                        Core.save.TryGetArchipelagoItem(arch_loc, out ArchipelagoItem archiItem);
+                        //MelonLogger.Msg($"Money pin {archiItem.name} currentlyOwnedAmount: {currentlyOwnedAmount} Location {archiItem.locationName} timesBought {timesBoughtGood} currentlyToSellMax {__instance.mMasterShopGoods.GetItemCountNow()} ");
 
-            //Only mark the item as sold out if the player has bought all the items available in the shop good instead of checking player inventory
-            int itemCountNow = __instance.mMasterShopGoods.GetItemCountNow();
-            __instance.IsSoldOut = timesBoughtGood >= itemCountNow;
-            //MelonLogger.Msg($"Money pin is soldOut? {__instance.IsSoldOut}");
+                        //Only mark the item as sold out if the player has bought all the items available in the shop good instead of checking player inventory
+                        int itemCountNow = __instance.mMasterShopGoods.GetItemCountNow();
+                        __instance.IsSoldOut = timesBoughtGood >= itemCountNow;
+                        //MelonLogger.Msg($"Money pin is soldOut? {__instance.IsSoldOut}");
                     }
                 }
             }
@@ -166,21 +158,31 @@ namespace NEOTwewyArchipelagoMod.HarmonyPatches
                     //MelonLogger.Msg($"ShopDescriptionControllerPatch: Found Archipelago item {archiItem.name} with {info.MasterBadge.ItemName} for ShopGoods {mMasterShopGoods.mId}");
                     __instance.mValuablesDescription.mItemNameText.text = $"{archiItem.name}";
                     __instance.mValuablesDescription.mFlavorText.text = $"A pin reminiscent of {archiItem.player}'s {archiItem.itemGame}.";
-
-                    if (archiItem.IsItemFromOurSlot() && archiItem.itemType == ItemType.AllItems)
+                    if((archiItem.flags & ItemFlags.Advancement) == ItemFlags.Advancement)
                     {
-                        AllItems itemObject = MasterDataBase<AllItems>.Get((int)archiItem.id);
-
-                        string atlasPath = UIUtility.GetItemAtlasPath(itemObject);
-                        string spriteName = UIUtility.GetItemImageName(itemObject);
-
-                        __instance.mValuablesDescription.mItemImage.m_Sprite = UISpriteBank.Instance.GetSprite(atlasPath, spriteName);
+                        __instance.mValuablesDescription.mFlavorText.text += "\n It seems important.";
                     }
-                    //TODO: Update this for character nodes!!
+
+                    if(archiItem.itemType == ItemType.SocialNode) {
+                        __instance.mValuablesDescription.mFlavorText.text = $"Unlocks their respective node in the Social Network.";
+                    } else if(archiItem.itemType == ItemType.VIP)
+                    {
+                        __instance.mValuablesDescription.mFlavorText.text = $"Increases VIP level for this brand by 1.";
+                    }
+                        IconReplacement.SetCustomSprite(archiItem, Sprite => SetSprite(__instance, Sprite));
                 }
             }
 
             
+        }
+
+        public static void SetSprite(ShopDescriptionController __instance, Sprite sprite)
+        {
+            if (__instance.mValuablesDescription != null)
+            {
+                var image = __instance.mValuablesDescription.mItemImage;
+                image.sprite = sprite;
+            }
         }
     }
 
@@ -196,23 +198,16 @@ namespace NEOTwewyArchipelagoMod.HarmonyPatches
             ShopGoods goods = shopInfo.MasterShopGoods;
             if (goods.Item == (AllItems.ELabel)Core.ARCHIPELAGO_ITEM_ID && Core.save.TryGetArchipelagoItem(new GameLocationID(goods.mId).ToArchipelagoLocation(LocationType.ShopGood), out ArchipelagoItem archiItem))
             {
-                if (archiItem.IsItemFromOurSlot())
-                {
-                    if(archiItem.itemType == ItemType.AllItems)
-                    {
-                        AllItems itemObject = MasterDataBase<AllItems>.Get((int)archiItem.id);
+                IconReplacement.SetCustomSprite(archiItem, Sprite => SetSprite(__instance, Sprite));
+            }
+        }
 
-                        string atlasPath = UIUtility.GetItemAtlasPath(itemObject);
-                        string spriteName = UIUtility.GetItemImageName(itemObject);
-                        __instance.mBadgeImage.m_Sprite = UISpriteBank.Instance.GetSprite(atlasPath, spriteName);
-                    } else if (archiItem.itemType == ItemType.SocialNode)
-                    {
-                        //TODO: Update this for character nodes!!
-                    }
-
-
-                }
-                
+        public static void SetSprite(ShopScrollObject __instance, Sprite sprite)
+        {
+            if (__instance.mBadgeImage != null)
+            {
+                var image = __instance.mBadgeImage;
+                image.sprite = sprite;
             }
         }
     }

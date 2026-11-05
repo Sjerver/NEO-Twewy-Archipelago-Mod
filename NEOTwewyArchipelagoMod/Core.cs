@@ -4,10 +4,12 @@ using Il2CppCriMana;
 using Il2CppInterop.Runtime;
 using Il2CppMaster;
 using MelonLoader;
+using NEOTwewyArchipelagoMod.HarmonyPatches;
 using System.Diagnostics;
 using UnityEngine;
 using static Il2Cpp.ScenarioFlowComicComponent.Starter;
 using static Il2Cpp.SortWindow;
+using static Il2CppRootMotion.FinalIK.GrounderQuadruped;
 using static Il2CppUI.Battle.BattlePauseSelectController;
 
 [assembly: MelonInfo(typeof(NEOTwewyArchipelagoMod.Core), "NEOTwewyArchipelagoMod", "0.0.5", "sjerver", null)]
@@ -49,9 +51,12 @@ namespace NEOTwewyArchipelagoMod
         public static ModSave save = new ModSave();
 
         //Queue to display pop-up for items we send that otherwise dont give any notification to our player
+        //TODO: ConcurrentQueue???
         public static Queue<ArchipelagoItem> archiItemDisplayQueue = new Queue<ArchipelagoItem>();
         //Are we already processing an item to display?
         public static bool processingArchiItem = false;
+        //Queue to diplay VIP level pop-ups
+        public static Queue<Brand.ELabel> vipDisplayQueue = new Queue<Brand.ELabel>();
 
         //Local storage for current newest day in game
         public static int furthestDayReached = -1;
@@ -75,7 +80,7 @@ namespace NEOTwewyArchipelagoMod
         public override void OnInitializeMelon()
         {
             Config.Load(); //Load config with hostname, port, slotname, and password
-
+            NEOTwewyDataManager.Initialize(); //Load data from external jsons
 
             if (!client.AttemptConnectionSync())
             {
@@ -110,7 +115,12 @@ namespace NEOTwewyArchipelagoMod
                 {
                     if (client.IsConnected && save.getPendingLocationSize() > 0)
                     {//If we have locations we need to do send to the server
-                        client.session.Locations.CompleteLocationChecks([save.dequeueLocation().Value]);
+                        long location = save.dequeueLocation().Value;
+                        if (client.session.Locations.AllMissingLocations.Contains(location))
+                        {
+                            client.session.Locations.CompleteLocationChecks([location]);
+                        }
+                        
                     }
 
                     if (client.IsConnected && save.getGoalAchieved())
@@ -135,9 +145,22 @@ namespace NEOTwewyArchipelagoMod
                     {//Enable soundsurf if the option is set
                         alwaysOnFlags.Add(Scenario.EName.System_EnableMusicSync);
                     }
+                    if (ModOptions.sns)
+                    {
+                        SaveDataSkill saveDataSkill = SaveLoadController.Get<SaveDataSkill>();
+                        foreach (SkillTree.ELabel tree in Enum.GetValues(typeof(SkillTree.ELabel)))
+                        {
+                            if((int)tree < 0)  { continue; }
+                            if (!saveDataSkill.GetIsHaveMet(tree))
+                            {
+                                saveDataSkill.SetIsHaveMet(tree, true);
+                            }
+                        }
+                    }
 
                 }
 
+                //TODO: DO we need to do this every frame?
                 if (SaveLoadController.Get<SaveDataField>().GetTipsFlag(Tips.ELabel.Tips_0003))
                 {//Only once we can ensure that we have at least some pins equipped
                     for (int i = 0; i < alwaysOnFlags.Count; i++)
@@ -175,7 +198,12 @@ namespace NEOTwewyArchipelagoMod
                             FieldManager.Instance.ReserveScenarioReward((ScenarioRewards.ELabel)rewardToTrigger.RewardID(), 1);
                         } else if (rewardToTrigger.type == ItemType.SocialNode)
                         {
-                        } else
+                            FieldManagerSkillPatch.ReserveSkillTreeCustom(rewardToTrigger.GameID());
+                        } else if(rewardToTrigger.type == ItemType.VIP)
+                        {
+                            VIPPatch.TriggerBrandLevelUp(rewardToTrigger);
+                        }
+                        else
                         {
                             MelonLogger.Error($"No reward queue handling for item type {rewardToTrigger.type}");
                         }
@@ -188,15 +216,26 @@ namespace NEOTwewyArchipelagoMod
                         ProcessNextArchipelagoItem();
                     }
                 }
+                if (vipDisplayQueue.Count > 0)
+                {
+                    if (rewardSafety && vipDisplayQueue.Count > 0 && !processingArchiItem && FieldManager.Instance.IsMoveStatus())
+                    {
+                        ProcessNextVIP();
+                    }
+                }
 
             }
             if (DEBUG && Input.GetKeyDown(KeyCode.F8))
             {
                 MelonLogger.Msg("F8 pressed");
-                int rewardID = ArchipelagoData.ReceivableRewards[10205].reward_ID; //Joli Becot
-                save.enqueueReward(new QueuedReward(rewardID, 1000));
-                rewardID = ArchipelagoData.ReceivableRewards[31006].reward_ID;
-                save.enqueueReward(new QueuedReward(rewardID, 1000));
+                //save.enqueueReward(new QueuedReward(10205, 1000));//Joli Becot
+
+                //save.enqueueReward(new QueuedReward(31006, 1000)); 
+
+                //SaveLoadController.Get<SaveDataSkill>().SetIsRelationship(SkillTree.ELabel.SPH_m068, true);
+                //save.enqueueReward(new QueuedReward(33001, 1000));
+
+                FieldManagerSkillPatch.ReserveSkillTreeCustom(64);
 
             }
 
@@ -275,7 +314,7 @@ namespace NEOTwewyArchipelagoMod
                         }
                     }
                     if (type == LocationType.DiveReward)
-                    {
+                    {//TODO: Item Type? tests
                         //MelonLogger.Msg($"{archiItem.name} at {archiItem.locationName}" +
                         //    $"count {archiItem.count} archiBadge {archiItem.id != ARCHIPELAGO_ITEM_ID} locationChecked {save.IsLocationChecked(aLocationID)}");
                         if (((archiItem.id != ARCHIPELAGO_ITEM_ID && archiItem.count == 1 && archiItem.itemType == ItemType.AllItems) || archiItem.id == NEOTwewyDataManager.DIVE_FP_ID)
@@ -499,18 +538,40 @@ namespace NEOTwewyArchipelagoMod
 
             if (archiItemDisplayQueue.Count == 0)
                 return;
-
+            FieldManager.Instance.m_FieldPlayer.SetStateFlag(FieldPlayer.EPlayerStateFlag.DisableInput, true);
             processingArchiItem = true;
 
             ArchipelagoItem item = archiItemDisplayQueue.Dequeue();
-            //MelonLogger.Msg($"Archipelago dialog open call for {item.name} {item.id} from {item.locationName}");
-            FieldManager.Instance.m_FieldPlayer.SetStateFlag(FieldPlayer.EPlayerStateFlag.DisableInput, true);
+            //MelonLogger.Msg($"Archipelago dialog open call for {item.name} {item.id} {item.itemType} from {item.locationName}");
+
             DialogGetUI.OpenItemGetDialog(
-                (AllItems.ELabel)item.id,
-                -((int)item.locationID.Value), //Gets passed as negative location value to distinguish it from "real" item
-                DelegateSupport.ConvertDelegate<Il2CppSystem.Action>(OnArchipelagoUIEnd),
-                DelegateSupport.ConvertDelegate<Il2CppSystem.Action<DialogGetUI>>(OnArchipelagoDialogEnded)
-                );
+                                (AllItems.ELabel)item.id,
+                                -((int)item.locationID.Value), //Gets passed as negative location value to distinguish it from "real" item
+                                DelegateSupport.ConvertDelegate<Il2CppSystem.Action>(OnArchipelagoUIEnd),
+                                DelegateSupport.ConvertDelegate<Il2CppSystem.Action<DialogGetUI>>(OnArchipelagoDialogEnded)
+                                );        
+        }
+
+        private static void ProcessNextVIP()
+        {
+            if (processingArchiItem)
+                return;
+
+            if (!FieldManager.Instance.IsPromptStatus() || !FieldManager.Instance.IsMoveStatus())
+                return;
+
+            if (vipDisplayQueue.Count == 0)
+                return;
+            FieldManager.Instance.m_FieldPlayer.SetStateFlag(FieldPlayer.EPlayerStateFlag.DisableInput, true);
+            processingArchiItem = true;
+
+            Brand.ELabel brand = vipDisplayQueue.Dequeue();
+            //MelonLogger.Msg($"Archipelago dialog open call for {item.name} {item.id} {item.itemType} from {item.locationName}");
+            DialogGetUI.OpenVipLevelUpDialog(
+                                brand,
+                                DelegateSupport.ConvertDelegate<Il2CppSystem.Action>(OnArchipelagoUIEnd),
+                                DelegateSupport.ConvertDelegate<Il2CppSystem.Action<DialogGetUI>>(OnArchipelagoDialogEnded)
+                                );
         }
 
         private static void OnArchipelagoUIEnd()

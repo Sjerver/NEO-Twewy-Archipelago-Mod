@@ -13,10 +13,12 @@ namespace NEOTwewyArchipelagoMod
         public static int min_drop_rate = 0;
         public static DLCOption dlc_options = DLCOption.Vanilla;
         public static bool soundsurf = false;
+        public static bool sns = false;
+        public static bool shops = false;
 
         public static void UpdateOption(string key, object value)
         {
-            if (key == "prevent_out_of_logic" || key == "soundsurf")
+            if (key == "prevent_out_of_logic" || key == "soundsurf" || key =="sns" ||key == "shops")
             {
                 typeof(ModOptions).GetField(key).SetValue(null, Convert.ToBoolean(value));
             }

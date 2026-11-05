@@ -73,6 +73,7 @@ namespace NEOTwewyArchipelagoMod
 
         public void UpdateSlotData(Dictionary<string, object> slotData)
         {//TODO: move slot data handling to ModOptions?
+            //TODO: We can make our own SLOTData class to read/prase this beetter
             if (Core.syncState == SyncState.WrongSeed) { return; }
             foreach (KeyValuePair<string, object> entry in slotData)
             {
@@ -211,6 +212,8 @@ namespace NEOTwewyArchipelagoMod
                     //Archipelago Items need display that they were found
                     case LocationType.DLC:
                     //DLC is always handled by server
+                    case LocationType.SocialNode:
+                    //Social Nodes are always handled by server
                         archipelagoItemCheck = true;
                         break;
 
@@ -230,17 +233,6 @@ namespace NEOTwewyArchipelagoMod
                         //Therfore we cant let everything be handled via receivedItems
 
                         archipelagoItemCheck = true;
-                        //With this we get non badges doubled, in the old code we only needed custom display for other game items, rest is handled by server
-                        //if(item.itemType == ItemType.AllItems)
-                        //{
-                        //    //Check if its also a not a badge or more than one
-                        //    AllItems itemObject = MasterDataBase<AllItems>.Get((int)item.id);
-                        //    ItemConst.EItemType allItemType = itemObject.ItemType;
-                        //    if (allItemType != ItemConst.EItemType.Badge || item.count != 1) { customDisplay = true; }
-                        //} else
-                        //{
-                        //    customDisplay = true;
-                        //}
                         break;
 
                     case LocationType.ShopGood:
@@ -268,8 +260,9 @@ namespace NEOTwewyArchipelagoMod
                             break;
 
                         case ItemType.SocialNode:
-                            MelonLogger.MsgDirect(MelonLoader.Logging.ColorARGB.Red,"CharacterNode item not implemented yet");
-                            //TODO: Is this ever needed???
+                        //MelonLogger.MsgDirect(MelonLoader.Logging.ColorARGB.Red,"CharacterNode item not implemented yet");
+                        //Currently we dont need to do anything here, since always handled by server
+                        //case ItemType.VIP: //TODO: We need this right?
                             break;
 
                         default:
@@ -304,6 +297,11 @@ namespace NEOTwewyArchipelagoMod
             return Data.checkedLocations.Contains(location);
         }
 
+        public bool IsLocationInSeed(ArchipelagoLocationID location)
+        {
+            return TryGetArchipelagoItem(location, out ArchipelagoItem _);
+        }
+
         public ArchipelagoLocationID dequeueLocation() { return Data.pendingLocations.Dequeue(); }
 
         public QueuedReward dequeueReward() { return Data.rewardQueue.Dequeue(); }
@@ -332,7 +330,7 @@ namespace NEOTwewyArchipelagoMod
                     //MelonLogger.Msg($"Location {entry.Value.LocationDisplayName} ({entry.Key}) has {entry.Value.ItemName} ({entry.Value.ItemId})");
                     if(locType != LocationType.Vanilla && locType != LocationType.ArchipelagoReceive)
                     {
-                        Data.locationMappings[locType].Add(keyID.ToGameLocation(), FromScoutedItem(itemID, entry.Value));
+                        Data.locationMappings[locType].Add(keyID.ToGameLocation(), new ArchipelagoItem (itemID, entry.Value));
                     }
                     
 
@@ -352,29 +350,6 @@ namespace NEOTwewyArchipelagoMod
             //send ones missing at the server?
         }
 
-        public static ArchipelagoItem FromScoutedItem(long id, ScoutedItemInfo info)
-        {
-            long itemCount = 1;
-            ItemType itemType = ItemType.OtherGame;
-            if (info.ItemGame == Core.GAME_NAME && info.Player.Name == Config.Data.slotName)
-            {
-                itemCount = NEOTwewyDataManager.item_data[info.ItemName].count;
-                itemType = NEOTwewyDataManager.item_data[info.ItemName].type;
-            }
-
-
-                return new ArchipelagoItem(
-                    id,
-                    info.ItemName,
-                    new ArchipelagoLocationID(info.LocationId),
-                    info.LocationName,
-                    info.ItemId,
-                    info.ItemGame,
-                    itemCount,
-                    info.Player.Name,
-                    itemType
-                );
-        }
     }
 
     public class ModSaveData
