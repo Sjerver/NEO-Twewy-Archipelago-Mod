@@ -10,6 +10,7 @@ using Microsoft.VisualBasic;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -207,13 +208,12 @@ namespace NEOTwewyArchipelagoMod
                 switch (type)
                 {
                     case LocationType.ScenarioReward:
-                    //Also CheckEndOfChapterReward
-                    //"Normal Items" get stopped and handled via server
-                    //Archipelago Items need display that they were found
                     case LocationType.DLC:
-                    //DLC is always handled by server
                     case LocationType.SocialNode:
-                    //Social Nodes are always handled by server
+                    case LocationType.VIP:
+                        //Also CheckEndOfChapterReward
+                        //"Normal Items" get stopped and handled via server
+                        //Archipelago Items need display that they were found
                         archipelagoItemCheck = true;
                         break;
 
@@ -260,9 +260,9 @@ namespace NEOTwewyArchipelagoMod
                             break;
 
                         case ItemType.SocialNode:
-                        //MelonLogger.MsgDirect(MelonLoader.Logging.ColorARGB.Red,"CharacterNode item not implemented yet");
-                        //Currently we dont need to do anything here, since always handled by server
-                        //case ItemType.VIP: //TODO: We need this right?
+                        case ItemType.VIP:
+                            //MelonLogger.MsgDirect(MelonLoader.Logging.ColorARGB.Red,"CharacterNode item not implemented yet");
+                            //Currently we dont need to do anything here, since always handled by server
                             break;
 
                         default:
@@ -297,14 +297,17 @@ namespace NEOTwewyArchipelagoMod
             return Data.checkedLocations.Contains(location);
         }
 
-        public bool IsLocationInSeed(ArchipelagoLocationID location)
-        {
-            return TryGetArchipelagoItem(location, out ArchipelagoItem _);
-        }
-
         public ArchipelagoLocationID dequeueLocation() { return Data.pendingLocations.Dequeue(); }
 
-        public QueuedReward dequeueReward() { return Data.rewardQueue.Dequeue(); }
+        public QueuedReward dequeueReward() { 
+            if(Data.rewardQueue.TryDequeue(out QueuedReward reward))
+            {
+                return reward;
+            } else {
+                MelonLogger.Error("Reward queue is empty");
+                return null;
+            }
+        }
 
         public void SaveArchipelagoLocations(Dictionary<long, ScoutedItemInfo> locationData)
         {
@@ -369,7 +372,7 @@ namespace NEOTwewyArchipelagoMod
         public bool goalAchieved { get; set; } = false;
         //Remember we achieved or goal in case we could not tell the server as such
 
-        public Queue<QueuedReward> rewardQueue { get; set; } = new Queue<QueuedReward>();
+        public ConcurrentQueue<QueuedReward> rewardQueue { get; set; } = new ConcurrentQueue<QueuedReward>();
         //Remember what is currently in the reward queue when the game closed
 
         //

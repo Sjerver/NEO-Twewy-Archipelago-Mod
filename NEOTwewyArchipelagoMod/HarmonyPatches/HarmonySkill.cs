@@ -3,6 +3,7 @@ using Il2Cpp;
 using Il2CppHnLib;
 using Il2CppMaster;
 using Il2CppScenario;
+using Il2CppUI;
 using Il2CppUI.Shop;
 using Il2CppUI.Think;
 using MelonLoader;
@@ -19,6 +20,32 @@ namespace NEOTwewyArchipelagoMod.HarmonyPatches
     [HarmonyPatch(typeof(SaveDataSkill))]
     public static class SaveDataSkillPatch2
     {
+
+        //----------------------------------------------------------------------------------------------------------------
+        //Points
+        //----------------------------------------------------------------------------------------------------------------
+        [HarmonyPrefix]
+        [HarmonyPatch("AddSkillPoint")]
+        public static void PreAddSkillPoint(ref int inAddPoint)
+        {
+            if (inAddPoint < 0)
+            {
+                //MelonLogger.Msg("Prevent FP reduction");
+                inAddPoint = 0;
+            }
+        }
+
+        [HarmonyPatch(typeof(UISphere))]
+        public static class UISpherePointsPatch
+        {
+            [HarmonyPrefix]
+            [HarmonyPatch("Initialize")]
+            public static void PreInitialize()
+            {
+                Initialization.InitializeSNSPoints();
+            }
+        }
+
         //----------------------------------------------------------------------------------------------------------------
         //Skills
         //----------------------------------------------------------------------------------------------------------------
@@ -34,5 +61,7 @@ namespace NEOTwewyArchipelagoMod.HarmonyPatches
             }
         }
     }
+
+
     
 }

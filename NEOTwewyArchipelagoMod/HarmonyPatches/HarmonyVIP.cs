@@ -23,22 +23,18 @@ namespace NEOTwewyArchipelagoMod.HarmonyPatches
         [HarmonyPatch("AddBrandPoint")]
         public static void PreAddBrandPoint(SaveDataShop __instance, Brand.ELabel brand, ref int addPoint,BattlePlayer.ELabel playerId = BattlePlayer.ELabel.Invalid,bool isEnableAbility = false)
         {
-            if (ModOptions.shops)
+            if (addPoint >= 0)
             {
-                if (addPoint >= 0)
-                {
-                    addPoint = 0;
-                }
-                else
-                {
-                    SaveDataShop.IBrandInfo brandInfo = __instance.GetBrandInfo(brand);
-
-                    int nextVIP = Math.Min(brandInfo.VipLevel + 1, brandInfo.MaxVipLevel);
-                    addPoint = brandInfo.NextLevelPoint(nextVIP) - brandInfo.Point;
-                    //MelonLogger.Msg($"Brand {brand} CurrentPoints {brandInfo.Point} + {addPoint}. NextLevelPoint {brandInfo.NextLevelPoint(nextVIP)}");
-                }
+                addPoint = 0;
             }
-            
+            else
+            {
+                SaveDataShop.IBrandInfo brandInfo = __instance.GetBrandInfo(brand);
+
+                int nextVIP = Math.Min(brandInfo.VipLevel + 1, brandInfo.MaxVipLevel);
+                addPoint = brandInfo.NextLevelPoint(nextVIP) - brandInfo.Point;
+                //MelonLogger.Msg($"Brand {brand} CurrentPoints {brandInfo.Point} + {addPoint}. NextLevelPoint {brandInfo.NextLevelPoint(nextVIP)}");
+            }
         }
 
         public static void TriggerBrandLevelUp(QueuedReward reward)

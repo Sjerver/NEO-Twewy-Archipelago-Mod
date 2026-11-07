@@ -5,12 +5,8 @@ using Il2CppInterop.Runtime;
 using Il2CppMaster;
 using MelonLoader;
 using NEOTwewyArchipelagoMod.HarmonyPatches;
-using System.Diagnostics;
+using System.Collections.Concurrent;
 using UnityEngine;
-using static Il2Cpp.ScenarioFlowComicComponent.Starter;
-using static Il2Cpp.SortWindow;
-using static Il2CppRootMotion.FinalIK.GrounderQuadruped;
-using static Il2CppUI.Battle.BattlePauseSelectController;
 
 [assembly: MelonInfo(typeof(NEOTwewyArchipelagoMod.Core), "NEOTwewyArchipelagoMod", "0.0.5", "sjerver", null)]
 [assembly: MelonGame("SQUARE ENIX", "NEO: The World Ends with You")]
@@ -51,7 +47,6 @@ namespace NEOTwewyArchipelagoMod
         public static ModSave save = new ModSave();
 
         //Queue to display pop-up for items we send that otherwise dont give any notification to our player
-        //TODO: ConcurrentQueue???
         public static Queue<ArchipelagoItem> archiItemDisplayQueue = new Queue<ArchipelagoItem>();
         //Are we already processing an item to display?
         public static bool processingArchiItem = false;
@@ -272,7 +267,7 @@ namespace NEOTwewyArchipelagoMod
 
         public void ProcessPendingItems()
         {
-            PendingItem receivedItem = client.pendingItems.Dequeue();
+            client.pendingItems.TryDequeue(out PendingItem receivedItem);
             //MelonLogger.Msg($"Received Item: {receivedItem.Item.ItemName} at index {receivedItem.Index}");
             if (receivedItem.Index <= save.getLastItemIndex())
             { // Only receive item with an index higher than the last item we received
@@ -314,7 +309,7 @@ namespace NEOTwewyArchipelagoMod
                         }
                     }
                     if (type == LocationType.DiveReward)
-                    {//TODO: Item Type? tests
+                    {
                         //MelonLogger.Msg($"{archiItem.name} at {archiItem.locationName}" +
                         //    $"count {archiItem.count} archiBadge {archiItem.id != ARCHIPELAGO_ITEM_ID} locationChecked {save.IsLocationChecked(aLocationID)}");
                         if (((archiItem.id != ARCHIPELAGO_ITEM_ID && archiItem.count == 1 && archiItem.itemType == ItemType.AllItems) || archiItem.id == NEOTwewyDataManager.DIVE_FP_ID)
@@ -542,14 +537,13 @@ namespace NEOTwewyArchipelagoMod
             processingArchiItem = true;
 
             ArchipelagoItem item = archiItemDisplayQueue.Dequeue();
-            //MelonLogger.Msg($"Archipelago dialog open call for {item.name} {item.id} {item.itemType} from {item.locationName}");
-
-            DialogGetUI.OpenItemGetDialog(
+                //MelonLogger.Msg($"Archipelago dialog open call for {item.name} {item.id} {item.itemType} from {item.locationName}");
+                DialogGetUI.OpenItemGetDialog(
                                 (AllItems.ELabel)item.id,
                                 -((int)item.locationID.Value), //Gets passed as negative location value to distinguish it from "real" item
                                 DelegateSupport.ConvertDelegate<Il2CppSystem.Action>(OnArchipelagoUIEnd),
                                 DelegateSupport.ConvertDelegate<Il2CppSystem.Action<DialogGetUI>>(OnArchipelagoDialogEnded)
-                                );        
+                                );
         }
 
         private static void ProcessNextVIP()
@@ -566,12 +560,12 @@ namespace NEOTwewyArchipelagoMod
             processingArchiItem = true;
 
             Brand.ELabel brand = vipDisplayQueue.Dequeue();
-            //MelonLogger.Msg($"Archipelago dialog open call for {item.name} {item.id} {item.itemType} from {item.locationName}");
-            DialogGetUI.OpenVipLevelUpDialog(
+                //MelonLogger.Msg($"Archipelago dialog open call for {item.name} {item.id} {item.itemType} from {item.locationName}");
+                DialogGetUI.OpenVipLevelUpDialog(
                                 brand,
                                 DelegateSupport.ConvertDelegate<Il2CppSystem.Action>(OnArchipelagoUIEnd),
                                 DelegateSupport.ConvertDelegate<Il2CppSystem.Action<DialogGetUI>>(OnArchipelagoDialogEnded)
-                                );
+                                );                         
         }
 
         private static void OnArchipelagoUIEnd()
@@ -585,7 +579,7 @@ namespace NEOTwewyArchipelagoMod
         private static void OnArchipelagoDialogEnded(DialogGetUI dialog)
         {
             //MelonLogger.Msg("Archipelago dialog ended");
-
+            FieldManager.Instance.CallReserveAutoSave();
         }
 
     }

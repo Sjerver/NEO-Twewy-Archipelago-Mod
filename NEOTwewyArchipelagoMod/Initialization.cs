@@ -16,6 +16,7 @@ namespace NEOTwewyArchipelagoMod
         private static bool __noiseDropInitialized = false;
         private static bool __shopGoodsInitialized = false;
         private static bool __pigInitialized = false;
+        private static bool __snsPointsInitialized = false;
 
         public static bool isSynced() { return Core.syncState != SyncState.WrongSeed; }
 
@@ -24,6 +25,7 @@ namespace NEOTwewyArchipelagoMod
             InitializeNoiseDrops();
             InitializeShopGoods();
             InitializePigDrops();
+            InitializeSNSPoints();
         }
 
         public static void InitializeNoiseDrops()
@@ -167,8 +169,9 @@ namespace NEOTwewyArchipelagoMod
                 ArchipelagoLocationID archipelagoLocationId;
                 try
                 {
-                    archipelagoLocationId =  gameLocationID.ToArchipelagoLocation(LocationType.PigDrop);
-                } catch
+                    archipelagoLocationId = gameLocationID.ToArchipelagoLocation(LocationType.PigDrop);
+                }
+                catch
                 {
                     continue;
                 }
@@ -201,6 +204,23 @@ namespace NEOTwewyArchipelagoMod
             }
             __pigInitialized = true;
         }
-    
+
+        public static void InitializeSNSPoints()
+        {
+            if (!__snsPointsInitialized && isSynced())
+            {
+                __snsPointsInitialized = true;
+                //MelonLogger.Msg($"Creating shop UI data {dataID}");
+                var skills = MasterDataBase<Skill>.Array;
+
+                int totalCost = 0;
+
+                foreach (Skill skill in skills)
+                {
+                    skill.mPoint = skill.mPoint + totalCost;
+                    totalCost = skill.mPoint;
+                }
+            }
+        }
     }
 }

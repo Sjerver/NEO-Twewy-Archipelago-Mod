@@ -7,6 +7,7 @@ using Archipelago.MultiClient.Net.Models;
 using Il2Cpp;
 using MelonLoader;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -22,7 +23,7 @@ namespace NEOTwewyArchipelagoMod
         public bool IsConnected { get; private set; } = false;
 
         //Queue of items the client received from the server
-        public Queue<PendingItem> pendingItems = new();
+        public ConcurrentQueue<PendingItem> pendingItems = new();
 
         private DateTime _lastSocketError = DateTime.MinValue;
 

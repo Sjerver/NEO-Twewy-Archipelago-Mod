@@ -31,6 +31,7 @@ namespace NEOTwewyArchipelagoMod
         public static long PIG_DROP_MODIFIER            = 410_000;
         public static long NOISE_DROP_MODIFIER          = 400_000;
         public static long DIVE_LOCATION_MODIFIER       = 300_000;
+        public static long VIP_LOCATION_MODIFIER        = 210_000;
         public static long SHOP_LOCATION_MODIFIER       = 200_000;
         
 
@@ -72,6 +73,10 @@ namespace NEOTwewyArchipelagoMod
             {
                 return LocationType.DiveReward;
             }
+            else if (id >= VIP_LOCATION_MODIFIER)
+            {
+                return LocationType.VIP;
+            }
             else if (id >= SHOP_LOCATION_MODIFIER)
             {
                 return LocationType.ShopGood;
@@ -106,6 +111,9 @@ namespace NEOTwewyArchipelagoMod
                     break;
                 case LocationType.ShopGood:
                     gameID = gameID - SHOP_LOCATION_MODIFIER;
+                    break;
+                case LocationType.VIP:
+                    gameID = gameID - VIP_LOCATION_MODIFIER;
                     break;
                 case LocationType.DiveReward:
                     gameID = gameID - DIVE_LOCATION_MODIFIER;
@@ -147,6 +155,9 @@ namespace NEOTwewyArchipelagoMod
                     break;
                 case LocationType.ShopGood:
                     archiID = archiID + SHOP_LOCATION_MODIFIER;
+                    break;
+                case LocationType.VIP:
+                    archiID = archiID + VIP_LOCATION_MODIFIER;
                     break;
                 case LocationType.DiveReward:
                     archiID = archiID + DIVE_LOCATION_MODIFIER;
@@ -270,7 +281,8 @@ namespace NEOTwewyArchipelagoMod
         Skill,
         PigDrop,
         DLC,
-        SocialNode
+        SocialNode,
+        VIP
     }
 
     [TypeConverter(typeof(GameLocationIDTypeConverter))]
@@ -287,9 +299,9 @@ namespace NEOTwewyArchipelagoMod
 
         public LocationType GetLocationType() => ArchipelagoData.GetLocationType(this);
 
-        public bool IsInSeed()
+        public bool TryGetItem(out ArchipelagoItem item)
         {
-            return Core.save.IsLocationInSeed(this);
+            return Core.save.TryGetArchipelagoItem(this, out item);
         }
     }
 }

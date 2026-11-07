@@ -40,15 +40,21 @@ namespace NEOTwewyArchipelagoMod.HarmonyPatches
                 GameLocationID gameLocationID = new GameLocationID(skillTree.Id + 1000);
                 ArchipelagoLocationID archipelagoLocationID = gameLocationID.ToArchipelagoLocation(LocationType.SocialNode);
 
-                if (!archipelagoLocationID.IsInSeed()) { continue; }
+                
 
                 bool relationshipFound = __instance.GetIsRelationshiptData((int)skillTree.Id);
                 
                 Shop shop = skillTree.GetShop();
                 SaveDataShop.IBrandInfo brandInfo = saveData.GetBrandInfo(inBrand);
 
-                if (shop.mBrand != Brand.ELabel.NoBrand && skillTree.mReleaseValue <= brandInfo.VipLevel)
+                if (!archipelagoLocationID.TryGetItem(out ArchipelagoItem item)) { continue; }
+                //else {MelonLogger.Msg($"BrandQuestClear: location {item.locationName} {skillTree.Id} (Shop: {shop.Name}) {shop.mBrand} -> {inBrand} {brandInfo.VipLevel}"); }
+
+                TriggerVIPLocations(inBrand, brandInfo);
+
+                if (shop.mBrand != Brand.ELabel.NoBrand && shop.mBrand == inBrand && skillTree.mReleaseValue <= brandInfo.VipLevel)
                 {
+                    
                     if (!Core.save.IsLocationChecked(archipelagoLocationID))
                     {
                         //Has the corresponding node been unlocked (relationship)?
@@ -76,6 +82,21 @@ namespace NEOTwewyArchipelagoMod.HarmonyPatches
             return allowNormalCodeExecution;
         }
 
+        public static void TriggerVIPLocations(Brand.ELabel brand, SaveDataShop.IBrandInfo brandInfo)
+        {
+            int currentVIP = Math.Min(brandInfo.VipLevel, brandInfo.MaxVipLevel);
+
+            for(int i = 1; i <= currentVIP; i++)
+            {
+                GameLocationID rewardID = new GameLocationID(1000 * (int)brand + i);
+                ArchipelagoLocationID locationID = rewardID.ToArchipelagoLocation(LocationType.VIP);
+                if (!Core.save.IsLocationChecked(locationID) && Core.save.TryGetArchipelagoItem(locationID, out ArchipelagoItem item))
+                {
+                    Core.save.enqueueLocation(locationID);
+                }
+            }
+        }
+
         [HarmonyPrefix]
         [HarmonyPatch("PurchaseQuestClear")]
         public static bool PrePurchaseQuestClear(SaveDataSkill __instance, Shop.ELabel inShop, int inPurchaseNum, out SkillTree outSkillTree)
@@ -100,7 +121,7 @@ namespace NEOTwewyArchipelagoMod.HarmonyPatches
                     bool relationshipFound = __instance.GetIsRelationshiptData(node);
 
                     //We dont actually need to execute the code if the location is not relevant
-                    if (!archipelagoLocationID.IsInSeed()) { continue; }
+                    if (!archipelagoLocationID.TryGetItem(out ArchipelagoItem item)) { continue; }
 
                     //Quest done?
                     if (shop.mBrand == Brand.ELabel.NoBrand && outSkillTree.mReleaseValue <= inPurchaseNum)
@@ -154,7 +175,7 @@ namespace NEOTwewyArchipelagoMod.HarmonyPatches
             //We want to execute real code if we cant find location in seed
             GameLocationID gameLocationID = new GameLocationID(inIndex);
             ArchipelagoLocationID archipelagoLocationID = gameLocationID.ToArchipelagoLocation(LocationType.SocialNode);
-            if (!archipelagoLocationID.IsInSeed()) { return true; }
+            if (!archipelagoLocationID.TryGetItem(out ArchipelagoItem item)) { return true; }
 
             if (FieldManagerSkillPatch.currentItem >= 0)
             { //An Item currently stored, that we want to give without triggering archipelago
@@ -190,7 +211,7 @@ namespace NEOTwewyArchipelagoMod.HarmonyPatches
             //We want to execute real code if we cant find location in seed
             GameLocationID gameLocationID = new GameLocationID(inIndex + 1000);
             ArchipelagoLocationID archipelagoLocationID = gameLocationID.ToArchipelagoLocation(LocationType.SocialNode);
-            if (!archipelagoLocationID.IsInSeed()) { return true; }
+            if (!archipelagoLocationID.TryGetItem(out ArchipelagoItem item)) { return true; }
 
             if (FieldManagerSkillPatch.currentItem >= 0)
             { //An Item currently stored, that we want to give without triggering archipelago
@@ -280,7 +301,7 @@ namespace NEOTwewyArchipelagoMod.HarmonyPatches
                     ArchipelagoLocationID archipelagoLocationID = gameLocationID.ToArchipelagoLocation(LocationType.SocialNode);
 
                     //Skip custom code if location is not relevant
-                    if (!archipelagoLocationID.IsInSeed()) { continue; }
+                    if (!archipelagoLocationID.TryGetItem(out ArchipelagoItem item)) { continue; }
 
                     if (!Core.save.IsLocationChecked(archipelagoLocationID))
                     {//If the location hasn't already been checked check it manually
@@ -308,7 +329,7 @@ namespace NEOTwewyArchipelagoMod.HarmonyPatches
             ArchipelagoLocationID archipelagoLocationID = gameLocationID.ToArchipelagoLocation(LocationType.SocialNode);
             
             //Skip custom code if location is not relevant
-            if (!archipelagoLocationID.IsInSeed()) { return true; }
+            if (!archipelagoLocationID.TryGetItem(out ArchipelagoItem item)) { return true; }
 
             Core.save.enqueueLocation(archipelagoLocationID);
 
@@ -327,7 +348,7 @@ namespace NEOTwewyArchipelagoMod.HarmonyPatches
             ArchipelagoLocationID archipelagoLocationID = gameLocationID.ToArchipelagoLocation(LocationType.SocialNode);
 
             //Skip custom code if location is not relevant
-            if (!archipelagoLocationID.IsInSeed()) { return true; }
+            if (!archipelagoLocationID.TryGetItem(out ArchipelagoItem item)) { return true; }
 
             Core.save.enqueueLocation(archipelagoLocationID);
 
@@ -351,7 +372,7 @@ namespace NEOTwewyArchipelagoMod.HarmonyPatches
             ArchipelagoLocationID archipelagoLocationID = gameLocationID.ToArchipelagoLocation(LocationType.SocialNode);
 
             //Skip custom code if location is not relevant
-            if (!archipelagoLocationID.IsInSeed()) { return true; }
+            if (!archipelagoLocationID.TryGetItem(out ArchipelagoItem item)) { return true; }
 
             SkillTree skillTree = MasterDataBase<SkillTree>.Get((int)inSkillTreeID);
             
@@ -392,6 +413,43 @@ namespace NEOTwewyArchipelagoMod.HarmonyPatches
     [HarmonyPatch(typeof(UISphere))]
     public static class UISpherePatch
     {
+        //[HarmonyPostfix]
+        //[HarmonyPatch("Initialize")]
+        //public static void PostInitialize(UISphere __instance)
+        //{
+        //    //[18:07:49.100] UpdateInfoPanel called for SPH_m011 at -392.02, 660.08, 6.9737E-05
+        //    //[18:07:49.587] UpdateInfoPanel called for SPH_m010 at -333.55, 893.95, 6.9737E-05
+        //    Dictionary<SkillTree.ELabel, Vector3> newInitialPositions = new()
+        //    {
+        //        { SkillTree.ELabel.SPH_m011, new Vector3(-392.02f,660.08f,6.9737f) },
+        //        { SkillTree.ELabel.SPH_m010, new Vector3(-333.55f,893.95f,6.9737f) },
+        //    };
+
+        //    foreach (Il2CppSystem.Collections.Generic.KeyValuePair<SkillTree.ELabel,UISphere.CharaPanel> pair in __instance.mCharaPanelList)
+        //    {
+                
+        //        UISphere.CharaPanel panel = pair.value;
+        //        SkillTree.ELabel tree = panel.Chara.ID;
+
+        //        Vector3 v = panel.GetLocalPosFromBoard();
+
+        //        //MelonLogger.Msg($"Initialize for {tree} at {v.x}, {v.y}, {v.z}");
+
+        //        if (newInitialPositions.ContainsKey(tree))
+        //        {
+        //            MelonLogger.Msg($"Initialize for {tree} at {v.x}, {v.y}, {v.z}");
+        //            panel.Chara.Obj.localPosition = newInitialPositions[tree];
+        //            //panel.Chara.InitialPos = newInitialPositions[tree];
+        //            panel.Chara.SetInitialPos();
+        //            panel.StartMoveToInitialPos();
+
+
+        //            v = panel.GetLocalPosFromBoard();
+        //            MelonLogger.Msg($"New position for {tree} at {v.x}, {v.y}, {v.z}");
+        //        }
+        //    }
+        //}
+
         [HarmonyPostfix]
         [HarmonyPatch("UpdateInfoPanel")]
         public static void PostUpdateInfoPanel(UISphere __instance)
@@ -400,28 +458,38 @@ namespace NEOTwewyArchipelagoMod.HarmonyPatches
             GameLocationID gameLocationID = new GameLocationID((int)selectedCharacter.ID + 1000);
             ArchipelagoLocationID archipelagoLocationID = gameLocationID.ToArchipelagoLocation(LocationType.SocialNode);
             SaveDataSkill saveData = SaveLoadController.Get<SaveDataSkill>();
-            
-            if (!archipelagoLocationID.IsInSeed()) { return; }
 
-            string eventType = __instance.GetUIText("Events").Text.CurrentText;
-            if (!Core.save.IsLocationChecked(archipelagoLocationID)){
-                //Relationship is unlocked but location or "Quest" not yet checked, therefore the current conditions status should be displayed
-                if (eventType == "QUEST")
+            if (!archipelagoLocationID.TryGetItem(out ArchipelagoItem item)) { return; }
+            else { 
+                string eventType = __instance.GetUIText("Events").Text.CurrentText;
+                if (!Core.save.IsLocationChecked(archipelagoLocationID))
                 {
-                    //Show condition if not yet completed
-                    __instance.GetUIText("EventNowNum").SetTextActive(true);
-                } else if (eventType == "TIMEFRAME")
-                {
-                    __instance.SetText("EventNowNum","Unchecked");
-                    __instance.GetUIText("EventNowNum").SetTextActive(true);
-                } else
-                {
-                    MelonLogger.Error($"Unknown eventType: {eventType} for character {selectedCharacter.ID}");
+                    //Relationship is unlocked but location or "Quest" not yet checked, therefore the current conditions status should be displayed
+                    if (eventType == "QUEST")
+                    {
+                        FieldSkillTreeData.ELineStatus lineStatus = FieldCommonData.m_FieldSkillTreeData.GetLineStatus(selectedCharacter.ID, true);
+                        if (lineStatus == FieldSkillTreeData.ELineStatus.NotConnect && !saveData.GetIsRelationship(selectedCharacter.ID))
+                        { //Not connected and relationship not unlocked
+                            __instance.SetText("EventNowNum", "Unchecked");
+                        }
+
+                        __instance.GetUIText("EventNowNum").SetTextActive(true);
+                    }
+                    else if (eventType == "TIMEFRAME")
+                    {
+                        __instance.SetText("EventNowNum", "Unchecked");
+                        __instance.GetUIText("EventNowNum").SetTextActive(true);
+                    }
+                    else
+                    {
+                        MelonLogger.Error($"Unknown eventType: {eventType} for character {selectedCharacter.ID}");
+                    }
                 }
-            } else if (Core.save.IsLocationChecked(archipelagoLocationID))
-            { //Cleared the location but relationship not unlocked
-                __instance.SetText("EventNowNum", "Checked");
-                __instance.GetUIText("EventNowNum").SetTextActive(true);
+                else if (Core.save.IsLocationChecked(archipelagoLocationID))
+                { //Cleared the location but relationship not unlocked
+                    __instance.SetText("EventNowNum", $"Checked");
+                    __instance.GetUIText("EventNowNum").SetTextActive(true);
+                }
             }
             
         }
