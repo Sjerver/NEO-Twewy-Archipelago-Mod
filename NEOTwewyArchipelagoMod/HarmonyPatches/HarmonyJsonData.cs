@@ -230,6 +230,24 @@ namespace NEOTwewyArchipelagoMod.HarmonyPatches
                 }
                 __result = root.ToString();
             }
+            else if (assetName.Contains("Brand.txt"))
+            {
+                ////MelonLogger.Msg("Editing Brand");
+
+                //JObject root = JObject.Parse(__result);
+                //JArray targets = (JArray)root["mTarget"];
+
+                //for (int i = 0; i < targets.Count; i++)
+                //{
+                //    int[] brand_15_points = [2700, 4900, 7500, 9900];
+                //    for (int j=0; j< targets[i]["mRankPoint"].Count(); j++)
+                //    {
+                //        targets[i]["mRankPoint"][j] = brand_15_points[j];
+                //    }
+                //}
+
+                //__result = root.ToString();
+            }
             return;
         }
     }

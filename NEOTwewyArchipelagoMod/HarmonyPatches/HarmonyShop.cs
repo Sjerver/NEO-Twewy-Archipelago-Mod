@@ -160,7 +160,7 @@ namespace NEOTwewyArchipelagoMod.HarmonyPatches
                     __instance.mValuablesDescription.mFlavorText.text = $"A pin reminiscent of {archiItem.player}'s {archiItem.itemGame}.";
                     if((archiItem.flags & ItemFlags.Advancement) == ItemFlags.Advancement)
                     {
-                        __instance.mValuablesDescription.mFlavorText.text += "\n It seems important.";
+                        __instance.mValuablesDescription.mFlavorText.text += "\nIt seems important.";
                     }
 
                     if(archiItem.itemType == ItemType.SocialNode) {
@@ -168,8 +168,12 @@ namespace NEOTwewyArchipelagoMod.HarmonyPatches
                     } else if(archiItem.itemType == ItemType.VIP)
                     {
                         __instance.mValuablesDescription.mFlavorText.text = $"Increases VIP level for this brand by 1.";
+                    } else if(archiItem.itemType == ItemType.AllItems && archiItem.id == NEOTwewyDataManager.DIVE_FP_ID)
+                    {
+                        __instance.mValuablesDescription.mFlavorText.text = $"Friendship points can be used to unlock skills in the Social Network.";
                     }
-                        IconReplacement.SetCustomSprite(archiItem, Sprite => SetSprite(__instance, Sprite));
+
+                    IconReplacement.SetCustomSprite(archiItem, Sprite => SetSprite(__instance, Sprite));
                 }
             }
 

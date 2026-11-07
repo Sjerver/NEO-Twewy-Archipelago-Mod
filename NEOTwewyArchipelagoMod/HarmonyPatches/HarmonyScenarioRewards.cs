@@ -52,7 +52,7 @@ namespace NEOTwewyArchipelagoMod.HarmonyPatches
         {
             //MelonLogger.Msg( $"ReserveScenarioReward called: ID={__0}, Index={__1}");
 
-            ScenarioRewards scenarioRewards = MasterDataBase<ScenarioRewards>.Get((int)__0);
+            //ScenarioRewards scenarioRewards = MasterDataBase<ScenarioRewards>.Get((int)__0);
 
             //if (Core.DEBUG) { MelonLogger.Msg($"Gave Item {scenarioRewards.mReward1st} x {scenarioRewards.mReward1stCount}"); }
 
