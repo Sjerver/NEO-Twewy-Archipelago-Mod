@@ -15,6 +15,7 @@ namespace NEOTwewyArchipelagoMod
         public static bool soundsurf = false;
         public static bool sns = false;
         public static bool shops = false;
+        public static double cutscene_skip_speed = 10.0;
 
         public static void UpdateOption(string key, object value)
         {
@@ -25,6 +26,10 @@ namespace NEOTwewyArchipelagoMod
             else if (key == "min_drop_rate")
             {
                 typeof(ModOptions).GetField(key).SetValue(null, Convert.ToInt32(value));
+            }
+            else if (key == "cutscene_skip_speed")
+            {
+                typeof(ModOptions).GetField(key).SetValue(null, Convert.ToDouble(value));
             }
             else if (key == "dlc_options")
             {
