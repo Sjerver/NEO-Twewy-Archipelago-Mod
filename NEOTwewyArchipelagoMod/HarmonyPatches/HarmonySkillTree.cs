@@ -230,6 +230,24 @@ namespace NEOTwewyArchipelagoMod.HarmonyPatches
         }
     }
 
+    /** These all call SaveDataSkill.GetIsRelationship	
+     * Incoming References - SaveDataSkill$$GetIsRelationship
+        SystemFlagUtility$$IsEnableITM_FOD_0600                     //Should check for the item so no change needed
+        SystemFlagUtility$$IsEnableSingle_Shop25                    //Should check for the item so no change needed
+        FieldSkillTreeData$$GetLineStatus                           //Custom Prefix; sets LineStatus based on location & relationship status
+        FieldMapUIComicEventInfo$$CheckRelationship                 -> Code written just in case
+        UI.UISphere$$Initialize                                     ->TODO: This one has Positioning for Shoka at least!
+        UI.UISphere$$IsPanelOccur                                   -> Can continue to check for the item
+        UI.UISphere$$UpdateInfoPanel                                //Custom Postfix; Changes text based on location & relationship status
+        UI.Think.ThinkingBoard3DSelectObject$$CheckMarkDraw         -> Should check for location instead of item -> DONE
+        UI.Think.ThinkingBoard3DSelectObject$$SetParam              -> Should check for location instead of item -> DONE
+        UI.Think.UIThinkingBoard$$IsSubBoardClear                   -> Should check for location instead of item -> DONE
+        Scenario.ScenarioIndexKindExtensions$$Accept_Relationship   //Custom Prefix; OG code only runs if location has not been checked instead of relationship
+        Scenario.ScenarioIndexKindExtensions$$Evaluate              -> Code written just in case
+        SaveDataSkill$$BrandQuestClear                              //Custom Prefix; OG code only runs if location has not been checked instead of relationship 
+        SaveDataSkill$$PurchaseQuestClear                           //Custom Prefix; OG code only runs if location has not been checked instead of relationship 
+     */
+
     [HarmonyPatch(typeof(FieldManager))]
     public static class FieldManagerSkillPatch
     {
@@ -354,6 +372,19 @@ namespace NEOTwewyArchipelagoMod.HarmonyPatches
 
             return false;
         }
+
+        [HarmonyPrefix]
+        [HarmonyPatch("Evaluate")]
+        public static void Evaluate(int index)
+        {
+            if((int)ScenarioIndexKind.CharaRelationship == index)
+            {
+                MelonLogger.Error("Evaluate ScenarioIndexKind.CharaRelationship does exist");
+            } else if((int)ScenarioIndexKind.CharaHaveMet == index)
+            {
+                MelonLogger.Error("Evaluate ScenarioIndexKind.CharaHaveMet does exist");
+            }
+        }
     }
 
     //----------------------------------------------------------------------------------------------------------------
@@ -367,7 +398,7 @@ namespace NEOTwewyArchipelagoMod.HarmonyPatches
         [HarmonyPatch("GetLineStatus")]
         public static bool PreGetLineStatus(SkillTree.ELabel inSkillTreeID,ref FieldSkillTreeData.ELineStatus __result, bool inCurrentDayStatus = false)
         {
-            //Get Met Location
+            //Get Relationship Location
             GameLocationID gameLocationID = new GameLocationID((int)inSkillTreeID + 1000);
             ArchipelagoLocationID archipelagoLocationID = gameLocationID.ToArchipelagoLocation(LocationType.SocialNode);
 
@@ -408,6 +439,90 @@ namespace NEOTwewyArchipelagoMod.HarmonyPatches
             return true;
         }
 
+    }
+
+    [HarmonyPatch(typeof(ThinkingBoard3DSelectObject))]
+    public static class ThinkingBoard3DSelectObjectPatch
+    {
+        [HarmonyPostfix]
+        [HarmonyPatch("CheckMarkDraw")]
+        public static void PostCheckMarkDraw(ThinkingBoard3DSelectObject __instance)
+        {
+            int boardId = (int)__instance.mAllBoard.Id;
+            foreach(SkillTree skillTree in MasterDataBase<SkillTree>.Array)
+            {
+                if(skillTree.mBoard == (AllBoard.ELabel)boardId)
+                { //Correct skillTree for current board
+                    //Get Relationship Location
+                    GameLocationID gameLocationID = new GameLocationID((int)skillTree.Id + 1000);
+                    ArchipelagoLocationID archipelagoLocationID = gameLocationID.ToArchipelagoLocation(LocationType.SocialNode);
+
+                    //If location is relevant and checked
+                    if(archipelagoLocationID.TryGetItem(out ArchipelagoItem item) && Core.save.IsLocationChecked(archipelagoLocationID)) {
+                        __instance.mObjCheck.SetActive(true);
+                    } else
+                    {
+                        __instance.mObjCheck.SetActive(false);
+                    }
+                }
+            }
+        }
+
+        [HarmonyPostfix]
+        [HarmonyPatch("SetParam")]
+        public static void PostSetParam(ThinkingBoard3DSelectObject __instance)
+        {
+            int boardId = (int)__instance.mAllBoard.Id;
+            foreach (SkillTree skillTree in MasterDataBase<SkillTree>.Array)
+            {
+                if (skillTree.mBoard == (AllBoard.ELabel)boardId)
+                { //Correct skillTree for current board
+                    //Get Relationship Location
+                    GameLocationID gameLocationID = new GameLocationID((int)skillTree.Id + 1000);
+                    ArchipelagoLocationID archipelagoLocationID = gameLocationID.ToArchipelagoLocation(LocationType.SocialNode);
+
+                    //If location is relevant and checked
+                    if (archipelagoLocationID.TryGetItem(out ArchipelagoItem item) && Core.save.IsLocationChecked(archipelagoLocationID))
+                    {
+                        __instance.mObjCheck.SetActive(true);
+                    }
+                    else
+                    {
+                        __instance.mObjCheck.SetActive(false);
+                    }
+                }
+            }
+        }
+    }
+
+    [HarmonyPatch(typeof(UIThinkingBoard))]
+    public static class UIThinkingBoardPatch
+    {
+        [HarmonyPostfix]
+        [HarmonyPatch("IsSubBoardClear")]
+        public static void PostIsSubBoardClear(AllBoard.ELabel subQuestAllBoardData, bool __result)
+        {
+            int boardId = (int)subQuestAllBoardData;
+            foreach (SkillTree skillTree in MasterDataBase<SkillTree>.Array)
+            {
+                if (skillTree.mBoard == (AllBoard.ELabel)boardId)
+                { //Correct skillTree for current board
+                    //Get Relationship Location
+                    GameLocationID gameLocationID = new GameLocationID((int)skillTree.Id + 1000);
+                    ArchipelagoLocationID archipelagoLocationID = gameLocationID.ToArchipelagoLocation(LocationType.SocialNode);
+
+                    //If location is relevant and checked
+                    if (archipelagoLocationID.TryGetItem(out ArchipelagoItem item) && Core.save.IsLocationChecked(archipelagoLocationID))
+                    {
+                        __result = true;
+                    }
+                    else
+                    {
+                        __result = false;
+                    }
+                }
+            }
+        }
     }
 
     [HarmonyPatch(typeof(UISphere))]
@@ -494,5 +609,16 @@ namespace NEOTwewyArchipelagoMod.HarmonyPatches
             
         }
 
+    }
+
+    [HarmonyPatch(typeof(FieldMapUIComicEventInfo))]
+    public static class FieldMapUIComicEventInfoPatch
+    {
+        [HarmonyPrefix]
+        [HarmonyPatch("CheckRelationship")]
+        public static void PreCheckRelationship(FieldMapUIComicEventInfo __instance)
+        {
+            MelonLogger.MsgDirect(MelonLoader.Logging.ColorARGB.Blue, $"CheckRelationship occured for {__instance.m_CheckRelationship}");
+        }
     }
 }
