@@ -240,6 +240,11 @@ namespace NEOTwewyArchipelagoMod
                         //Non-shop items like FP or non AllItems are handled via server
                         break;
 
+                    case LocationType.Skill:
+                        //Skills can display archi item naturally
+                        //Everything but "container items" are handled via server
+                        break;
+
                     case LocationType.Vanilla:
                     case LocationType.ArchipelagoReceive:
                         break;
@@ -345,12 +350,6 @@ namespace NEOTwewyArchipelagoMod
             }
             Save();
             ArchipelagoData.DataLoaded = true;
-        }
-
-        public void CompareCheckedLocations(List<long> allCheckedLocations)
-        {
-            //TODO: Compare locations from server(param) to local saved locations
-            //send ones missing at the server?
         }
 
     }

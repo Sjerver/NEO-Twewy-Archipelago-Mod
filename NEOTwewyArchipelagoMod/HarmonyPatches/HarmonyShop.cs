@@ -38,6 +38,7 @@ namespace NEOTwewyArchipelagoMod.HarmonyPatches
         public static void Prefix(ShopScrollController __instance, ref int dataID)
         {
             ShopScrollControllerInstance = __instance;
+            UISpriteBankPatch.CharacterIconLoader = new UIImageLoaderPersonal();
             Initialization.InitializeShopGoods();
         }
 

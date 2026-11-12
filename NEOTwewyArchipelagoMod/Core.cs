@@ -198,6 +198,10 @@ namespace NEOTwewyArchipelagoMod
                         {
                             VIPPatch.TriggerBrandLevelUp(rewardToTrigger);
                         }
+                        else if (rewardToTrigger.type == ItemType.Skill)
+                        {
+                            SphereRewardGet.CustomRewardGet(rewardToTrigger);
+                        }
                         else
                         {
                             MelonLogger.Error($"No reward queue handling for item type {rewardToTrigger.type}");
@@ -230,7 +234,15 @@ namespace NEOTwewyArchipelagoMod
                 //SaveLoadController.Get<SaveDataSkill>().SetIsRelationship(SkillTree.ELabel.SPH_m068, true);
                 //save.enqueueReward(new QueuedReward(33001, 1000));
 
-                FieldManagerSkillPatch.ReserveSkillTreeCustom(64);
+                //FieldManagerSkillPatch.ReserveSkillTreeCustom(64);
+                SphereRewardGet.CustomRewardGet(new QueuedReward(60000 + 54, -111, ItemType.Skill));
+
+            }
+            if (DEBUG && Input.GetKeyDown(KeyCode.F7))
+            {
+                MelonLogger.Msg("F7 pressed");
+
+                FieldManagerSkillPatch.ReserveSkillTreeCustom(66);
 
             }
 
@@ -320,8 +332,18 @@ namespace NEOTwewyArchipelagoMod
                             return;
                         }
                     }
+                    if (type == LocationType.Skill)
+                    {
+                        Skill skillObject = MasterDataBase<Skill>.Get((int)gLocationID.Value);
+                        if (skillObject.ShopReward > 0 && archiItem.itemType == ItemType.AllItems && archiItem.id != ARCHIPELAGO_ITEM_ID)
+                        { //Items from "containers" can be gotten normally
+                            MelonLogger.Msg($"{archiItem.name} at {archiItem.locationName} has been gotten normally already");
+                            return;
+                        }
 
                 }
+
+            }
 
             }
             else
@@ -332,7 +354,7 @@ namespace NEOTwewyArchipelagoMod
             int itemCount = ArchipelagoData.ReceivableRewards[receivedItem.Item.ItemId].count;
             ItemType itemType = ArchipelagoData.ReceivableRewards[receivedItem.Item.ItemId].type;
 
-            save.enqueueReward(new QueuedReward((int)receivedItem.Item.ItemId, receivedItem.Index, itemType, itemCount));
+            save.enqueueReward(new QueuedReward((int)receivedItem.Item.ItemId, receivedItem.Index, itemType, itemCount, receivedItem.Item.ItemName));
             save.setLastItemIndex(Math.Max(save.getLastItemIndex(), receivedItem.Index));
         }
 
@@ -592,12 +614,14 @@ namespace NEOTwewyArchipelagoMod
         public long ItemIndex { get; set; }
         public int itemCount { get; set; }
         public ItemType type { get; set; }
-        public QueuedReward(int itemId, long itemIndex, ItemType type = ItemType.AllItems, int itemCount = 1)
+        public string itemName {  get; set; }
+        public QueuedReward(int itemId, long itemIndex, ItemType type = ItemType.AllItems, int itemCount = 1, string itemName = "Unknown")
         {
             this.itemId = itemId;
             ItemIndex = itemIndex;
             this.type = type;
             this.itemCount = itemCount;
+            this.itemName = itemName;
         }
 
         public override string ToString()

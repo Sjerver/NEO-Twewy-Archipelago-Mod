@@ -1,4 +1,5 @@
 ﻿using MelonLoader;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -16,6 +17,7 @@ namespace NEOTwewyArchipelagoMod
         public static bool sns = false;
         public static bool shops = false;
         public static double cutscene_skip_speed = 10.0;
+        public static Dictionary<int, int> fp_costs = new Dictionary<int, int>();
 
         public static void UpdateOption(string key, object value)
         {
@@ -34,6 +36,9 @@ namespace NEOTwewyArchipelagoMod
             else if (key == "dlc_options")
             {
                 typeof(ModOptions).GetField(key).SetValue(null, (DLCOption)Convert.ToInt32(value));
+            } else if (key == "fp_costs")
+            {
+                typeof(ModOptions).GetField(key).SetValue(null, ((JObject)value).ToObject<Dictionary<int,int>>());
             }
             else {
                 MelonLogger.Error($"Option {key} cannot be converted");

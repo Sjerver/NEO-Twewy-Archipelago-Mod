@@ -27,6 +27,7 @@ namespace NEOTwewyArchipelagoMod
 
         public static long DLC_LOCATION_MODIFIER = 1_900_000;
         public static long SCENARIO_LOCATION_MODIFIER   = 1_000_000;
+        public static long SKILL_LOCATION_MODIFIER      = 600_000;
         public static long SOCIAL_NODE_LOCATION_MODIFIER = 500_000;
         public static long PIG_DROP_MODIFIER            = 410_000;
         public static long NOISE_DROP_MODIFIER          = 400_000;
@@ -56,6 +57,10 @@ namespace NEOTwewyArchipelagoMod
             else if (id >= SCENARIO_LOCATION_MODIFIER)
             {
                 return LocationType.ScenarioReward;
+            }
+            else if (id >= SKILL_LOCATION_MODIFIER)
+            {
+                return LocationType.Skill;
             }
             else if (id >= SOCIAL_NODE_LOCATION_MODIFIER)
             {
@@ -106,8 +111,11 @@ namespace NEOTwewyArchipelagoMod
                 case LocationType.ScenarioReward:
                     gameID = gameID - SCENARIO_LOCATION_MODIFIER;
                     break;
+                case LocationType.Skill:
+                    gameID = gameID - SKILL_LOCATION_MODIFIER;
+                    break;
                 case LocationType.SocialNode:
-                    gameID += SOCIAL_NODE_LOCATION_MODIFIER;
+                    gameID = gameID - SOCIAL_NODE_LOCATION_MODIFIER;
                     break;
                 case LocationType.ShopGood:
                     gameID = gameID - SHOP_LOCATION_MODIFIER;
@@ -149,6 +157,9 @@ namespace NEOTwewyArchipelagoMod
                     break;
                 case LocationType.ScenarioReward:
                     archiID = archiID + SCENARIO_LOCATION_MODIFIER;
+                    break;
+                case LocationType.Skill:
+                    archiID += SKILL_LOCATION_MODIFIER;
                     break;
                 case LocationType.SocialNode:
                     archiID += SOCIAL_NODE_LOCATION_MODIFIER;

@@ -213,12 +213,38 @@ namespace NEOTwewyArchipelagoMod
                 //MelonLogger.Msg($"Creating shop UI data {dataID}");
                 var skills = MasterDataBase<Skill>.Array;
 
-                int totalCost = 0;
+                
 
                 foreach (Skill skill in skills)
                 {
-                    skill.mPoint = skill.mPoint + totalCost;
-                    totalCost = skill.mPoint;
+                    GameLocationID gameLocationID = new GameLocationID(skill.Id);
+                    ArchipelagoLocationID archipelagoLocationID = gameLocationID.ToArchipelagoLocation(LocationType.Skill);
+
+                    if (ModOptions.fp_costs.TryGetValue((int)archipelagoLocationID.Value, out int fp))
+                    {
+                        skill.mPoint = fp;
+                    }
+                    if(Core.DEBUG) { skill.mPoint = 1; }
+                    
+                    
+
+
+                    //Also initialize "container" rewards
+                    if (!archipelagoLocationID.TryGetItem(out ArchipelagoItem item)) { continue; }
+                    if (skill.mShopReward != AllItems.ELabel.Invalid)
+                    {
+
+                        if (item.itemType != ItemType.AllItems || item.count > 1)
+                        {
+                            skill.mShopReward = (AllItems.ELabel)Core.ARCHIPELAGO_ITEM_ID;
+                            continue;
+                        }
+                        else
+                        {
+                            skill.mShopReward = (AllItems.ELabel)item.id;
+                        }
+
+                    }
                 }
             }
         }

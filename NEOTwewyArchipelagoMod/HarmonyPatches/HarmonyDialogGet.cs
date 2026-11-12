@@ -46,9 +46,9 @@ namespace NEOTwewyArchipelagoMod.HarmonyPatches
         [HarmonyPostfix]
         [HarmonyPatch("Initialize")]
         public static void PostInitialize(DialogGetUI __instance) 
-        { 
+        {
             //MelonLogger.Msg($"Initializing for {(long)__instance.ItemId}"); 
-            if (__instance.ItemId != (AllItems.ELabel)Core.ARCHIPELAGO_ITEM_ID) return; 
+            //if (__instance.ItemId != (AllItems.ELabel)Core.ARCHIPELAGO_ITEM_ID) return; 
             if (currentItem != null)
             {
                 //MelonLogger.Msg($"Changing text for {currentItem.name}"); 

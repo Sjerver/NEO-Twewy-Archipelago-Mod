@@ -43,6 +43,7 @@ namespace NEOTwewyArchipelagoMod.HarmonyPatches
                 
 
                 bool relationshipFound = __instance.GetIsRelationshiptData((int)skillTree.Id);
+                bool skillGot = __instance.GetIsSkill(skillTree.mSkill);
                 
                 Shop shop = skillTree.GetShop();
                 SaveDataShop.IBrandInfo brandInfo = saveData.GetBrandInfo(inBrand);
@@ -52,13 +53,15 @@ namespace NEOTwewyArchipelagoMod.HarmonyPatches
 
                 TriggerVIPLocations(inBrand, brandInfo);
 
+                //The checks also do not occur if the "GetIsSkill" is true so we need to do something in that case if location not checked!
+
                 if (shop.mBrand != Brand.ELabel.NoBrand && shop.mBrand == inBrand && skillTree.mReleaseValue <= brandInfo.VipLevel)
                 {
                     
                     if (!Core.save.IsLocationChecked(archipelagoLocationID))
                     {
                         //Has the corresponding node been unlocked (relationship)?
-                        if (relationshipFound)
+                        if (relationshipFound || skillGot)
                         {
                             //Node has been found already, so we need to manually unlock the location since the relationshipMet will not be set again
                             //MelonLogger.Msg("Node has been found already, so we need to manually unlock the location since the relationshipMet will not be set again");
@@ -119,6 +122,7 @@ namespace NEOTwewyArchipelagoMod.HarmonyPatches
                     //Quest stuff
                     outSkillTree = MasterDataBase<SkillTree>.Get(node);
                     bool relationshipFound = __instance.GetIsRelationshiptData(node);
+                    bool skillGot = __instance.GetIsSkill(outSkillTree.mSkill);
 
                     //We dont actually need to execute the code if the location is not relevant
                     if (!archipelagoLocationID.TryGetItem(out ArchipelagoItem item)) { continue; }
@@ -129,7 +133,7 @@ namespace NEOTwewyArchipelagoMod.HarmonyPatches
                         if (!Core.save.IsLocationChecked(archipelagoLocationID))
                         {
                             //Has the corresponding node been unlocked (relationship)?
-                            if (relationshipFound)
+                            if (relationshipFound || skillGot)
                             {
                                 //Node has been found already, so we need to manually unlock the location since the relationshipMet will not be set again
                                 //MelonLogger.Msg("Node has been found already, so we need to manually unlock the location since the relationshipMet will not be set again");
@@ -236,7 +240,7 @@ namespace NEOTwewyArchipelagoMod.HarmonyPatches
         SystemFlagUtility$$IsEnableSingle_Shop25                    //Should check for the item so no change needed
         FieldSkillTreeData$$GetLineStatus                           //Custom Prefix; sets LineStatus based on location & relationship status
         FieldMapUIComicEventInfo$$CheckRelationship                 -> Code written just in case
-        UI.UISphere$$Initialize                                     ->TODO: This one has Positioning for Shoka at least!
+        UI.UISphere$$Initialize                                     -> This one has Positioning for Shoka at least!
         UI.UISphere$$IsPanelOccur                                   -> Can continue to check for the item
         UI.UISphere$$UpdateInfoPanel                                //Custom Postfix; Changes text based on location & relationship status
         UI.Think.ThinkingBoard3DSelectObject$$CheckMarkDraw         -> Should check for location instead of item -> DONE
@@ -430,6 +434,8 @@ namespace NEOTwewyArchipelagoMod.HarmonyPatches
             FieldSkillTreeData.ELineStatus lineStatus = FieldCommonData.m_FieldSkillTreeData.GetLineStatus(__instance.ID, true);
             SaveDataSkill saveData = SaveLoadController.Get<SaveDataSkill>();
 
+            //MelonLogger.Msg($"{__instance.ID}: line {lineStatus} skill {FieldCommonData.m_FieldSkillTreeData.GetSkillStatus(__instance.ID)} ");
+
             if (lineStatus == FieldSkillTreeData.ELineStatus.NotConnect && saveData.GetIsRelationship(__instance.ID))
             {//Not connected but relationship unlocked
                 __instance.mFrameAnim.Play(UISphere.CharaInfo.AnimFrameGrayGlow);
@@ -531,7 +537,7 @@ namespace NEOTwewyArchipelagoMod.HarmonyPatches
         //[HarmonyPostfix]
         //[HarmonyPatch("Initialize")]
         //public static void PostInitialize(UISphere __instance)
-        //{
+        //{ //TODO: Positioning for Shoka, Susukichi and Tsugumi
         //    //[18:07:49.100] UpdateInfoPanel called for SPH_m011 at -392.02, 660.08, 6.9737E-05
         //    //[18:07:49.587] UpdateInfoPanel called for SPH_m010 at -333.55, 893.95, 6.9737E-05
         //    Dictionary<SkillTree.ELabel, Vector3> newInitialPositions = new()
@@ -540,9 +546,9 @@ namespace NEOTwewyArchipelagoMod.HarmonyPatches
         //        { SkillTree.ELabel.SPH_m010, new Vector3(-333.55f,893.95f,6.9737f) },
         //    };
 
-        //    foreach (Il2CppSystem.Collections.Generic.KeyValuePair<SkillTree.ELabel,UISphere.CharaPanel> pair in __instance.mCharaPanelList)
+        //    foreach (Il2CppSystem.Collections.Generic.KeyValuePair<SkillTree.ELabel, UISphere.CharaPanel> pair in __instance.mCharaPanelList)
         //    {
-                
+
         //        UISphere.CharaPanel panel = pair.value;
         //        SkillTree.ELabel tree = panel.Chara.ID;
 
@@ -555,9 +561,10 @@ namespace NEOTwewyArchipelagoMod.HarmonyPatches
         //            MelonLogger.Msg($"Initialize for {tree} at {v.x}, {v.y}, {v.z}");
         //            panel.Chara.Obj.localPosition = newInitialPositions[tree];
         //            //panel.Chara.InitialPos = newInitialPositions[tree];
-        //            panel.Chara.SetInitialPos();
-        //            panel.StartMoveToInitialPos();
-
+        //            //panel.Chara.SetInitialPos();
+        //            //panel.StartMoveToInitialPos();
+        //            //panel.PositionUpdate(0);
+                    
 
         //            v = panel.GetLocalPosFromBoard();
         //            MelonLogger.Msg($"New position for {tree} at {v.x}, {v.y}, {v.z}");
@@ -573,6 +580,9 @@ namespace NEOTwewyArchipelagoMod.HarmonyPatches
             GameLocationID gameLocationID = new GameLocationID((int)selectedCharacter.ID + 1000);
             ArchipelagoLocationID archipelagoLocationID = gameLocationID.ToArchipelagoLocation(LocationType.SocialNode);
             SaveDataSkill saveData = SaveLoadController.Get<SaveDataSkill>();
+
+            //TEMP CODE
+            //TEMP CODE
 
             if (!archipelagoLocationID.TryGetItem(out ArchipelagoItem item)) { return; }
             else { 
@@ -611,14 +621,14 @@ namespace NEOTwewyArchipelagoMod.HarmonyPatches
 
     }
 
-    [HarmonyPatch(typeof(FieldMapUIComicEventInfo))]
-    public static class FieldMapUIComicEventInfoPatch
-    {
-        [HarmonyPrefix]
-        [HarmonyPatch("CheckRelationship")]
-        public static void PreCheckRelationship(FieldMapUIComicEventInfo __instance)
-        {
-            MelonLogger.MsgDirect(MelonLoader.Logging.ColorARGB.Blue, $"CheckRelationship occured for {__instance.m_CheckRelationship}");
-        }
-    }
+    //[HarmonyPatch(typeof(FieldMapUIComicEventInfo))]
+    //public static class FieldMapUIComicEventInfoPatch
+    //{
+    //    [HarmonyPrefix]
+    //    [HarmonyPatch("CheckRelationship")]
+    //    public static void PreCheckRelationship(FieldMapUIComicEventInfo __instance)
+    //    {
+    //        MelonLogger.MsgDirect(MelonLoader.Logging.ColorARGB.LightBlue, $"CheckRelationship occured for {__instance.m_CheckRelationship}");
+    //    }
+    //}
 }
