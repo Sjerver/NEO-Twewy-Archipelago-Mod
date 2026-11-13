@@ -22,7 +22,7 @@ namespace NEOTwewyArchipelagoMod
 
         public static bool DataLoaded { get; set; } = false;
 
-        //itemID, RewardID
+        //ArchipelagoItemID, RewardID
         public static Dictionary<long, NEOTwewyItemData> ReceivableRewards = new();
 
         public static long DLC_LOCATION_MODIFIER = 1_900_000;
@@ -262,6 +262,38 @@ namespace NEOTwewyArchipelagoMod
             player = info.Player.Name;
             this.itemType = itemType;
             flags = info.Flags;
+        }
+        /* The difference between ItemInfo and ScoutedItemInfo is:
+         * ItemInfo: Player is the one the item is LOCATED IN
+         * ScoutedItemInfo: Player is the one the item is FOR
+         */
+        public ArchipelagoItem(PendingItem pendingItem)
+        {
+            ItemInfo info = pendingItem.Item;
+            long id = ArchipelagoData.ReceivableRewards[pendingItem.Item.ItemId].id;
+
+            long itemCount = 1;
+            ItemType itemType = ItemType.OtherGame;
+            //Pending items are always for our game
+            itemCount = NEOTwewyDataManager.item_data[info.ItemName].count;
+            itemType = NEOTwewyDataManager.item_data[info.ItemName].type;
+
+
+            this.id = id;
+            name = info.ItemName;
+            locationID = new ArchipelagoLocationID(info.LocationId);
+            locationName = info.LocationName;
+            archipelagoID = info.ItemId;
+            itemGame = info.ItemGame;
+            count = itemCount;
+            player = Config.Data.slotName;
+            this.itemType = itemType;
+            flags = info.Flags;
+        }
+
+        public override string ToString()
+        {
+            return $"{id}/{archipelagoID}: {name} Ct:{count} [{locationID} {locationName}] [{itemGame} {player}] {itemType}";
         }
 
 

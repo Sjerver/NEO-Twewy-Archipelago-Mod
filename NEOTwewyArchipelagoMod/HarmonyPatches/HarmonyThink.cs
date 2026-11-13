@@ -62,8 +62,11 @@ namespace NEOTwewyArchipelagoMod.HarmonyPatches
                     {
                         if(skill.Name == "Sphere_Reward_Item")
                         {
-                            AllItems allItem = MasterDataBase<AllItems>.Get((int)skill.ShopReward);
-                            finalString += $"- {TextManager.GetText(skill.Name)} {TextManager.GetText(allItem.Name)} \n";
+                            ArchipelagoLocationID locationID = new GameLocationID((long)skill.Id).ToArchipelagoLocation(LocationType.Skill);
+                            if(locationID.TryGetItem(out ArchipelagoItem item))
+                            {
+                                finalString += $"- {TextManager.GetText(skill.Name)} {item.name} \n";
+                            }
                         } else if (skill.Name == "SKL_Name_0033")
                         { //For "Bon Appetit" we should get the shops name
                             foreach (Shop shop in MasterDataBase<Shop>.Array)

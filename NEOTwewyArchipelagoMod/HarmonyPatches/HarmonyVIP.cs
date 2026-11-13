@@ -43,7 +43,7 @@ namespace NEOTwewyArchipelagoMod.HarmonyPatches
 
             SaveDataShop saveData = SaveLoadController.Get<SaveDataShop>();
             saveData.AddBrandPoint((Brand.ELabel)brandID,- 1, BattlePlayer.ELabel.Invalid, false);
-            Core.vipDisplayQueue.Enqueue((Brand.ELabel)brandID);
+            Core.archiItemDisplayQueue.Enqueue(reward);
         }
     }
     

@@ -64,7 +64,8 @@ namespace NEOTwewyArchipelagoMod.HarmonyPatches
             => ResetComicEventSpeed();
     }
     
-
+    //TODO: Overworld comic is fine, but instead try to make it so the speed increase only applies to the "Skip speed" not general stuff
+    //Otherwise we get audio issues and stuff
     [HarmonyPatch(typeof(ScenarioMovieManager), nameof(ScenarioMovieManager.PlayMovie))]
     public static class PatchScenarioMovieManagerPlayMovie
     {

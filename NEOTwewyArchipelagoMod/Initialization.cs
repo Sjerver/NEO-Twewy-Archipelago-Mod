@@ -224,7 +224,7 @@ namespace NEOTwewyArchipelagoMod
                     {
                         skill.mPoint = fp;
                     }
-                    if(Core.DEBUG) { skill.mPoint = 1; }
+                    //if(Core.DEBUG) { skill.mPoint = 1; }
                     
                     
 

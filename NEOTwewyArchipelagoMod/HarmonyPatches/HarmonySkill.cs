@@ -1,6 +1,8 @@
-﻿using HarmonyLib;
+﻿using Archipelago.MultiClient.Net.Enums;
+using HarmonyLib;
 using Il2Cpp;
 using Il2CppHnLib;
+using Il2CppInterop.Runtime;
 using Il2CppMaster;
 using Il2CppScenario;
 using Il2CppSystem;
@@ -69,39 +71,47 @@ namespace NEOTwewyArchipelagoMod.HarmonyPatches
             return false;
         }
 
+        public static bool easyDifficultyException = false;
         [HarmonyPrefix]
         [HarmonyPatch("SetIsSkillData")]
         public static bool PreSetIsSkillData(ref int inIndex, bool inIsSet)
         {
             bool normalCodeExecution = true;
-            if(inIndex >= 0)
+            if(inIndex >= 0 && !easyDifficultyException)
             {
                 GameLocationID gameLocationID = new GameLocationID(inIndex);
                 ArchipelagoLocationID archipelagoLocationID = gameLocationID.ToArchipelagoLocation(LocationType.Skill);
                 if (!archipelagoLocationID.TryGetItem(out ArchipelagoItem item)) { return true; }
 
-                MelonLogger.Msg($"SetIsSkillData Archipelago {item.locationName} {inIndex} ");
+                //MelonLogger.Msg($"SetIsSkillData Archipelago {item.locationName} {inIndex} ");
                 Core.save.enqueueLocation(archipelagoLocationID);
                 normalCodeExecution = false;
             }
             else
             {
                 inIndex = inIndex * -1;
-                MelonLogger.Msg($"Normal call; proceed with setting skill for {inIndex}!");
+                //MelonLogger.Msg($"Normal call; proceed with setting skill for {inIndex}!");
                 normalCodeExecution = true;
             }
             Skill skill = MasterDataBase<Skill>.Get(inIndex);
             if(skill.ShopReward > 0)
             {
-                MelonLogger.Msg($"Container skill {(Skill.ELabel)skill.Id} executing normally");
+                //MelonLogger.Msg($"Container skill {(Skill.ELabel)skill.Id} executing normally");
                 normalCodeExecution = true;
             }
-            
+            easyDifficultyException = false;
 
-            
+
+
             return normalCodeExecution;
 
 
+        }
+
+        public static void SetEasyDifficultySkill(SaveDataSkill saveData)
+        {
+            easyDifficultyException = true;
+            saveData.SetIsSkillData(0, true);
         }
 
         /**
@@ -165,7 +175,7 @@ namespace NEOTwewyArchipelagoMod.HarmonyPatches
             //MelonLogger.Msg($"CustomRewardGet call for {reward.itemName}");
             SaveDataSkill saveData = SaveLoadController.Get<SaveDataSkill>();
             Skill.ELabel inSkill = (Skill.ELabel)reward.GameID();
-            if (NEOTwewyDataManager.item_data.TryGetValue(reward.itemName, out NEOTwewyItemData itemData))
+            if (NEOTwewyDataManager.item_data.TryGetValue(reward.name, out NEOTwewyItemData itemData))
             {
                 int i = 0;
                 while (saveData.GetIsSkill(inSkill) && i < itemData.sameSkill.Length)
@@ -176,13 +186,20 @@ namespace NEOTwewyArchipelagoMod.HarmonyPatches
 
 
             Skill skill = MasterDataBase<Skill>.Get((int)inSkill);
-            MelonLogger.Msg($"Received {TextManager.GetText(skill.Name)} {inSkill}!");
+            //MelonLogger.Msg($"Received {TextManager.GetText(skill.Name)} {inSkill}!");
 
-            saveData.SetIsSkillData(-1*(int)inSkill, true);
+            if(inSkill == 0)
+            {
+                SaveDataSkillPatch2.SetEasyDifficultySkill(saveData);
+            } else
+            {
+                saveData.SetIsSkillData(-1 * (int)inSkill, true);
+            }
+                
             TrophyManager.Instance.CheckAllSkillReleased();
 
 
-            //TODO: Pop-up?
+            Core.archiItemDisplayQueue.Enqueue(reward);
 
         }
 
@@ -232,14 +249,35 @@ namespace NEOTwewyArchipelagoMod.HarmonyPatches
                 if(item.itemType == ItemType.Skill)
                 {
                     Skill rewardSkill = MasterDataBase<Skill>.Get((int)item.id);
-                    __instance.SetText("SkillName", item.name);
-                    __instance.SetText("SkillDetails", TextManager.GetText(rewardSkill.Info));
+                    if (rewardSkill.Name == "SKL_Name_0033")
+                    {//For "Bon Appetit" we should get the shops name
+                        foreach (Shop shop in MasterDataBase<Shop>.Array)
+                        {
+                            if (shop.Skill == (Skill.ELabel)skill.Id)
+                            {
+                                __instance.SetText("SkillName", $"{TextManager.GetText(skill.Name)} ({TextManager.GetText(shop.Name)})");
+                                __instance.SetText("SkillDetails", TextManager.GetText(rewardSkill.Info));
+                                break;
+                            }
+                        }
+                    } else
+                    {
+                        __instance.SetText("SkillName", item.name);
+                        __instance.SetText("SkillDetails", TextManager.GetText(rewardSkill.Info));
+                    }
                 } else if(!item.IsItemFromOurSlot())
                 {
-                    __instance.SetText("SkillName", "Item");
-                    __instance.SetText("SkillDetails", $"{item.name} {item.player}'s {item.itemGame}");
+                    if((item.flags & ItemFlags.Advancement) == ItemFlags.Advancement)
+                    {
+                        __instance.SetText("SkillDetails", $"'{item.name}' from {item.player}'s {item.itemGame} (Important)");
+                    } else
+                    {
+                        __instance.SetText("SkillDetails", $"'{item.name}' from {item.player}'s {item.itemGame}");
+                    }
+                        __instance.SetText("SkillName", "Item");
+                    
                 } else
-                {
+                { //Bon Appetit Disctinctions
                     __instance.SetText("SkillName", "Item");
                     __instance.SetText("SkillDetails", item.name);
                 }
@@ -269,25 +307,31 @@ namespace NEOTwewyArchipelagoMod.HarmonyPatches
         private static ArchipelagoItem currentSkill = null;
         public static bool showLocation = false;
 
+        public static void CustomOpenRewardInfoDialog(ArchipelagoItem skill, Il2CppSystem.Action onUIEndEvent, Il2CppSystem.Action<DialogGetUI> onEnded)
+        {
+            currentSkill = skill; 
+            showLocation = false;
+            DialogGetUI.OpenRewardInfoDialog(
+                    (Skill.ELabel)skill.id,
+                    onUIEndEvent,
+                    onEnded
+            );
+        }
+
         [HarmonyPrefix]
         [HarmonyPatch("OpenRewardInfoDialog")]
-        public static void PreOpenRewardInfoDialog(DialogGetUI __instance, ref int skillID, Il2CppSystem.Action onUIEndEvent, Il2CppSystem.Action<DialogGetUI> onEnded)
-        {
-            if (skillID >= 0)
+        public static void PreOpenRewardInfoDialog(DialogGetUI __instance, Skill.ELabel skillID, Il2CppSystem.Action onUIEndEvent, Il2CppSystem.Action<DialogGetUI> onEnded)
+        { 
+            if (currentSkill == null)
             {//This if the case when done from "Menu"
                 //MelonLogger.Msg("PreOpenRewardInfoDialog Archipelago");
-                GameLocationID gameLocationID = new GameLocationID(skillID);
+                GameLocationID gameLocationID = new GameLocationID((long)skillID);
                 ArchipelagoLocationID archipelagoLocationID = gameLocationID.ToArchipelagoLocation(LocationType.Skill);
                 if (archipelagoLocationID.TryGetItem(out ArchipelagoItem item)) {
                     currentSkill = item;
                     showLocation = true;
                 }
                 
-            } else
-            {//Reverse for from custom function
-                //MelonLogger.Msg("PreOpenRewardInfoDialog Custom");
-                skillID = -skillID;
-                showLocation = false;
             }
         }
 
@@ -313,7 +357,7 @@ namespace NEOTwewyArchipelagoMod.HarmonyPatches
             {
                 Skill skill = MasterDataBase<Skill>.Get((int)currentSkill.id);
                 __instance.SetMainTextID(skill.Name);
-                __instance.SetSubText(skill.Info);
+                __instance.SetSubTextID(skill.Info);
             }
 
             //MelonLogger.Msg($"No current item detected");

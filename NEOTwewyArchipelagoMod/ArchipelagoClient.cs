@@ -32,7 +32,8 @@ namespace NEOTwewyArchipelagoMod
             try
             {
                 session = ArchipelagoSessionFactory.CreateSession(Config.Data.hostName, Config.Data.port);
-            } catch (Exception e)
+            }
+            catch (Exception e)
             {
                 MelonLogger.Msg($"Failed to create session: {e.GetBaseException().Message}");
                 return false; // Did not connect, show the user the contents of `errorMessage`
@@ -146,14 +147,14 @@ namespace NEOTwewyArchipelagoMod
         {
             var item = helper.PeekItem();
             //if(Core.DEBUG) { MelonLogger.Msg($"Queued {item.ItemName}"); }
-            
-            pendingItems.Enqueue(new PendingItem(helper.DequeueItem(),helper.Index));
+
+            pendingItems.Enqueue(new PendingItem(helper.DequeueItem(), helper.Index));
 
         }
 
-        private void OnSocketError(Exception e,string message)
+        private void OnSocketError(Exception e, string message)
         {
-            if((DateTime.Now - _lastSocketError).TotalSeconds < 150)
+            if ((DateTime.Now - _lastSocketError).TotalSeconds < 150)
             {
                 MelonLogger.Error($"Archipelago socket error: {message}");
                 _lastSocketError = DateTime.Now;
@@ -163,7 +164,7 @@ namespace NEOTwewyArchipelagoMod
 
         private void OnMessageReceived(LogMessage message)
         {
-            MelonLogger.MsgDirect(MelonLoader.Logging.ColorARGB.Gold, $"[Archipelago] {message}");
+            Core.messageQueue.Enqueue(message);
         }
     }
 
