@@ -221,14 +221,18 @@ namespace NEOTwewyArchipelagoMod
         /// Example: 5 FP is only 1 item in the archipelago world
         /// </summary>
         public long count { get; set; }
+        /// <summary>
+        /// The player the item is for
+        /// </summary>
         public string player { get; set; }
 
         public ItemType itemType { get; set; }
 
-        public ItemFlags flags { get; set; } = ItemFlags.None;
+        public ItemFlags flags { get; set; }
+        public int location_playerID { get; set; }
 
         [JsonConstructor]
-        public ArchipelagoItem(long id, string name, ArchipelagoLocationID locationID, string locationName, long archipelagoID, string itemGame, long count, string player, ItemType type)
+        public ArchipelagoItem(long id, string name, ArchipelagoLocationID locationID, string locationName, long archipelagoID, string itemGame, long count, string player, ItemType type, ItemFlags flags, int location_playerID)
         {
             this.id = id;
             this.name = name;
@@ -239,7 +243,8 @@ namespace NEOTwewyArchipelagoMod
             this.count = count;
             this.player = player;
             this.itemType = type;
-
+            this.flags = flags;
+            this.location_playerID = location_playerID;
         }
 
         public ArchipelagoItem(long id, ScoutedItemInfo info)
@@ -262,6 +267,7 @@ namespace NEOTwewyArchipelagoMod
             player = info.Player.Name;
             this.itemType = itemType;
             flags = info.Flags;
+            location_playerID = Core.client.Slot;
         }
         /* The difference between ItemInfo and ScoutedItemInfo is:
          * ItemInfo: Player is the one the item is LOCATED IN
@@ -286,9 +292,10 @@ namespace NEOTwewyArchipelagoMod
             archipelagoID = info.ItemId;
             itemGame = info.ItemGame;
             count = itemCount;
-            player = Config.Data.slotName;
+            player = Config.Data.slotName; //Item always for us
             this.itemType = itemType;
             flags = info.Flags;
+            location_playerID = info.Player.Slot;
         }
 
         public override string ToString()
@@ -302,6 +309,30 @@ namespace NEOTwewyArchipelagoMod
             return itemGame == Core.GAME_NAME && player == Config.Data.slotName;
         }
 
+        public bool IsProgression()
+        {
+            return (flags & ItemFlags.Advancement) == ItemFlags.Advancement;
+        }
+
+        public HintStatus GetHintStatus()
+        {
+            if((flags & ItemFlags.Advancement) == ItemFlags.Advancement)
+            {
+                return HintStatus.Priority;
+            } else if((flags & ItemFlags.Trap) == ItemFlags.Trap)
+            {
+                return HintStatus.Avoid;
+            }
+            else if ((flags & ItemFlags.NeverExclude) == ItemFlags.NeverExclude)
+            {
+                return HintStatus.Priority;
+            }
+            else if ((flags & ItemFlags.None) == ItemFlags.None)
+            {
+                return HintStatus.NoPriority;
+            }
+            return HintStatus.Unspecified;
+        }
     }
 
     public enum ItemType
@@ -345,6 +376,14 @@ namespace NEOTwewyArchipelagoMod
         public bool TryGetItem(out ArchipelagoItem item)
         {
             return Core.save.TryGetArchipelagoItem(this, out item);
+        }
+
+        public void CreateHint()
+        {
+            if(Core.save.TryGetArchipelagoItem(this, out ArchipelagoItem item))
+            {
+                Core.hintQueue.Enqueue(item);
+            }
         }
     }
 }

@@ -144,11 +144,19 @@ namespace NEOTwewyArchipelagoMod.HarmonyPatches
                 return;
             }
 
-            //MelonLogger.Msg($"ShopDescriptionControllerPatch: Updating description for ShopGoods {mMasterShopGoods.mId} with item {mMasterShopGoods.mItem}");
-            if (CurrentShopGoods.Item == (AllItems.ELabel)Core.ARCHIPELAGO_ITEM_ID)
+            //MelonLogger.Msg($"ShopDescriptionControllerPatch: Updating description for ShopGoods {CurrentShopGoods.mId} with item {CurrentShopGoods.mItem}");
+            ArchipelagoLocationID archipelagoLocationID = new GameLocationID(CurrentShopGoods.mId).ToArchipelagoLocation(LocationType.ShopGood);
+            if (Core.save.TryGetArchipelagoItem(archipelagoLocationID, out ArchipelagoItem archiItem)) 
             {
+                if (ModOptions.shop_hints)
+                {
+                    //MelonLogger.Msg("Create hint call");
+                    archipelagoLocationID.CreateHint();
+                }
+
+
                 //MelonLogger.Msg($"ShopDescriptionControllerPatch: Updating description for Archipelago item {mMasterShopGoods.mId}");
-                if (Core.save.TryGetArchipelagoItem(new GameLocationID(CurrentShopGoods.mId).ToArchipelagoLocation(LocationType.ShopGood), out ArchipelagoItem archiItem))
+                if (CurrentShopGoods.Item == (AllItems.ELabel)Core.ARCHIPELAGO_ITEM_ID)
                 {
                     if (__instance.mValuablesDescription == null)
                     {
@@ -159,11 +167,11 @@ namespace NEOTwewyArchipelagoMod.HarmonyPatches
                     //MelonLogger.Msg($"ShopDescriptionControllerPatch: Found Archipelago item {archiItem.name} with {info.MasterBadge.ItemName} for ShopGoods {mMasterShopGoods.mId}");
                     __instance.mValuablesDescription.mItemNameText.text = $"{archiItem.name}";
                     __instance.mValuablesDescription.mFlavorText.text = $"A pin reminiscent of {archiItem.player}'s {archiItem.itemGame}.";
-                    if((archiItem.flags & ItemFlags.Advancement) == ItemFlags.Advancement)
+                    if(archiItem.IsProgression())
                     {
                         __instance.mValuablesDescription.mFlavorText.text += "\nIt seems important.";
                     }
-
+                    //TODO: Can we consolidate this with the descriptions in HarmonyDialogGet?
                     if(archiItem.itemType == ItemType.SocialNode) {
                         __instance.mValuablesDescription.mFlavorText.text = $"Unlocks their respective node in the Social Network.";
                     } else if(archiItem.itemType == ItemType.VIP)
@@ -172,9 +180,13 @@ namespace NEOTwewyArchipelagoMod.HarmonyPatches
                     } else if(archiItem.itemType == ItemType.AllItems && archiItem.id == NEOTwewyDataManager.DIVE_FP_ID)
                     {
                         __instance.mValuablesDescription.mFlavorText.text = $"Friendship points can be used to unlock skills in the Social Network.";
+                    } else if (archiItem.itemType == ItemType.Skill)
+                    {
+                        Skill skill = MasterDataBase<Skill>.Get((int)archiItem.id);
+                        __instance.mValuablesDescription.mFlavorText.text = $"{TextManager.GetText(skill.Info)}";
                     }
 
-                    IconReplacement.SetCustomSprite(archiItem, Sprite => SetSprite(__instance, Sprite));
+                        IconReplacement.SetCustomSprite(archiItem, Sprite => SetSprite(__instance, Sprite));
                 }
             }
 

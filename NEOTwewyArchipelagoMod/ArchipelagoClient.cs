@@ -27,6 +27,8 @@ namespace NEOTwewyArchipelagoMod
 
         private DateTime _lastSocketError = DateTime.MinValue;
 
+        public int Slot = -1;
+
         public bool AttemptConnectionSync()
         { //Attempt to connect synchronously at boot
             try
@@ -76,6 +78,7 @@ namespace NEOTwewyArchipelagoMod
                 if (result is LoginSuccessful)
                 {
                     IsConnected = true;
+                    Slot = session.ConnectionInfo.Slot;
                     MelonLogger.Msg("Connected!");
                 }
             }
@@ -121,6 +124,7 @@ namespace NEOTwewyArchipelagoMod
             // initial connection (e.g. a copy of the slot data as `loginSuccess.SlotData`)
             LoginInfo = (LoginSuccessful)result;
             IsConnected = LoginInfo.Successful;
+            Slot = session.ConnectionInfo.Slot;
             MelonLogger.Msg("Connected!");
             MelonLogger.Msg($"Player: {LoginInfo.Slot}");
             MelonLogger.Msg($"Team: {LoginInfo.Team}");
@@ -154,7 +158,7 @@ namespace NEOTwewyArchipelagoMod
 
         private void OnSocketError(Exception e, string message)
         {
-            if ((DateTime.Now - _lastSocketError).TotalSeconds < 150)
+            if (DateTime.Now >= _lastSocketError.AddSeconds(150))
             {
                 MelonLogger.Error($"Archipelago socket error: {message}");
                 _lastSocketError = DateTime.Now;

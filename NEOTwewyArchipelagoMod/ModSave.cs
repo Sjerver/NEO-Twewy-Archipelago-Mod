@@ -211,20 +211,15 @@ namespace NEOTwewyArchipelagoMod
                     case LocationType.DLC:
                     case LocationType.SocialNode:
                     case LocationType.VIP:
-                        //Also CheckEndOfChapterReward
                         //"Normal Items" get stopped and handled via server
-                        //Archipelago Items need display that they were found
+                        //Archipelago Items need extra display that they were found
                         archipelagoItemCheck = true;
                         break;
 
                     case LocationType.DiveReward:
                         //FP and 1x count items can be displayed normally
-                        //Therfore we cant let everything be handled via receivedItems
-                        archipelagoItemCheck = true;
-                        if ((item.id != NEOTwewyDataManager.DIVE_FP_ID && item.count > 1) || item.itemType != ItemType.AllItems)
-                        {
-                            customDisplay = true;
-                        }
+                        //With the new dialogPatch we can also show ArchipelagoItems and Count>1
+                        //Other item types are handled via server
                         break;
 
                     case LocationType.NoiseDrop:
@@ -352,6 +347,21 @@ namespace NEOTwewyArchipelagoMod
             ArchipelagoData.DataLoaded = true;
         }
 
+        public bool IsHintedForDay(int day)
+        {
+            if (Data.hintedForDay.ContainsKey(day))
+            {
+                MelonLogger.Msg($"{day} ->{Data.hintedForDay[day]}");
+                return Data.hintedForDay[day];
+            }
+            return false;
+        }
+
+        public void SetHintedForDay(int day)
+        {
+            Data.hintedForDay[day] = true;
+        }
+
     }
 
     public class ModSaveData
@@ -392,6 +402,8 @@ namespace NEOTwewyArchipelagoMod
 
             return new_dict;
         }
+
+        public Dictionary<int, bool> hintedForDay { get; set; } = new Dictionary<int, bool>();
 
     }
 

@@ -203,28 +203,7 @@ namespace NEOTwewyArchipelagoMod.HarmonyPatches
 
         }
 
-        //[HarmonyPrefix]
-        //[HarmonyPatch("OnRewardGet")]
-        //public static bool PreOnRewardGet(UISphere __instance, ref Skill.ELabel inSkill)
-        //{
-        //    int inIndex = (int)inSkill;
-        //    //MelonLogger.Msg($"PreOnRewardGet for {inSkill} ");
-
-        //    //GameLocationID gameLocationID = new GameLocationID(inIndex);
-        //    //ArchipelagoLocationID archipelagoLocationID = gameLocationID.ToArchipelagoLocation(LocationType.Skill);
-        //    //if (!archipelagoLocationID.TryGetItem(out ArchipelagoItem item)) { return true; }
-
-        //    //MelonLogger.Msg($"PreOnRewardGet Archipelago {item.locationName} ");
-        //    //Core.save.enqueueLocation(archipelagoLocationID);
-
-        //    //Skill inside skill means setting inSkill to something else and then returning true?
-
-        //    //Skill "item container" handling? AKA remember to not do anything on receive for these since they execute normally mostly
-
-        //    //Unfortunately this method freezes if we try to prevent it
-
-        //    return true;
-        //}
+        
 
         [HarmonyPostfix]
         [HarmonyPatch("UpdateInfoPanel")]
@@ -236,7 +215,6 @@ namespace NEOTwewyArchipelagoMod.HarmonyPatches
 
             GameLocationID gameLocationID = new GameLocationID((int)skill.Id);
             ArchipelagoLocationID archipelagoLocationID = gameLocationID.ToArchipelagoLocation(LocationType.Skill);
-            SaveDataSkill saveData = SaveLoadController.Get<SaveDataSkill>();
 
             if (!archipelagoLocationID.TryGetItem(out ArchipelagoItem item)) { return; }
             else
@@ -246,7 +224,13 @@ namespace NEOTwewyArchipelagoMod.HarmonyPatches
                 //{
                 //    MelonLogger.Msg($"[{selectedCharacter.ID}] {pair.Key}: {pair.Value.Text.CurrentText}");
                 //}
-                if(item.itemType == ItemType.Skill)
+
+                if (ModOptions.skill_hints)
+                {
+                    archipelagoLocationID.CreateHint();
+                }
+
+                if (item.itemType == ItemType.Skill)
                 {
                     Skill rewardSkill = MasterDataBase<Skill>.Get((int)item.id);
                     if (rewardSkill.Name == "SKL_Name_0033")
@@ -267,7 +251,7 @@ namespace NEOTwewyArchipelagoMod.HarmonyPatches
                     }
                 } else if(!item.IsItemFromOurSlot())
                 {
-                    if((item.flags & ItemFlags.Advancement) == ItemFlags.Advancement)
+                    if(item.IsProgression())
                     {
                         __instance.SetText("SkillDetails", $"'{item.name}' from {item.player}'s {item.itemGame} (Important)");
                     } else
@@ -284,9 +268,28 @@ namespace NEOTwewyArchipelagoMod.HarmonyPatches
             }
 
         }
+
+        [HarmonyPrefix]
+        [HarmonyPatch("SequenceRewardItemGet")]
+        public static void PreSequenceRewardItemGetl(UISphere __instance)
+        {
+            UISphere.CharaInfo selectedCharacter = __instance.mSelectPanel.Chara;
+            SkillTree skillTree = MasterDataBase<SkillTree>.Get((int)selectedCharacter.ID);
+            Skill skill = MasterDataBase<Skill>.Get((int)skillTree.Skill);
+
+            GameLocationID gameLocationID = new GameLocationID((int)skill.Id);
+            ArchipelagoLocationID archipelagoLocationID = gameLocationID.ToArchipelagoLocation(LocationType.Skill);
+            SaveDataSkill saveData = SaveLoadController.Get<SaveDataSkill>();
+            if (archipelagoLocationID.TryGetItem(out ArchipelagoItem item)) {
+                if(item.itemType == ItemType.OtherGame || item.count > 0)
+                {
+                    PatchDialogGetUI.currentItem = item;
+                } 
+            }
+            
+        }
     }
     
-
     [HarmonyPatch(typeof(DialogUI))]
     public static class SpendFPTextPatch
     {
@@ -356,7 +359,20 @@ namespace NEOTwewyArchipelagoMod.HarmonyPatches
             } else if(currentSkill != null)
             {
                 Skill skill = MasterDataBase<Skill>.Get((int)currentSkill.id);
-                __instance.SetMainTextID(skill.Name);
+                if (skill.Name == "SKL_Name_0033") //TODO Did not Work!
+                {//For "Bon Appetit" we should get the shops name
+                    foreach (Shop shop in MasterDataBase<Shop>.Array)
+                    {
+                        if (shop.Skill == (Skill.ELabel)skill.Id)
+                        {
+                            __instance.SetText("Main", $"{TextManager.GetText(skill.Name)} ({TextManager.GetText(shop.Name)})");
+                            break;
+                        }
+                    }
+                } else
+                {
+                    __instance.SetMainTextID(skill.Name);
+                }
                 __instance.SetSubTextID(skill.Info);
             }
 

@@ -213,6 +213,16 @@ namespace NEOTwewyArchipelagoMod
                 //MelonLogger.Msg($"Creating shop UI data {dataID}");
                 var skills = MasterDataBase<Skill>.Array;
 
+                var skillTrees = MasterDataBase<SkillTree>.Array;
+                foreach (SkillTree skillTree in skillTrees)
+                {
+                    if(skillTree.mSkill == Skill.ELabel.Invalid) { continue; }
+                    Skill skill = MasterDataBase<Skill>.Get((int)skillTree.mSkill);
+                    if(skill.Name == "SKL_Name_0033")
+                    { //Restaurants should only require one visit otherwise they can be grindy
+                        skillTree.mReleaseValue = 1;
+                    }
+                }
                 
 
                 foreach (Skill skill in skills)
@@ -225,8 +235,8 @@ namespace NEOTwewyArchipelagoMod
                         skill.mPoint = fp;
                     }
                     //if(Core.DEBUG) { skill.mPoint = 1; }
-                    
-                    
+
+
 
 
                     //Also initialize "container" rewards

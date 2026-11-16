@@ -19,12 +19,18 @@ namespace NEOTwewyArchipelagoMod.HarmonyPatches
     [HarmonyPatch(typeof(BattleResultUI))]
     public static class BattleResultUIPatch
     {
+        public static Dive.ELabel currentDive = Dive.ELabel.Invalid;
 
         [HarmonyPostfix]
         [HarmonyPatch("UpdatePrizeList")]
         public static void UpdatePrizeList(BattleResultUI __instance, Dive diveMaster)
         {
             //Dive list
+            currentDive = (Dive.ELabel)diveMaster.mId;
+            if(__instance.mDivePrizeList is null || __instance.mDivePrizeList.Count == 0)
+            {
+                return;
+            }
             //MelonLogger.Msg($"UpdatePrizeList Postfix {__instance.mDivePrizeList.Count}");
             for (int index = 0; index < __instance.mDivePrizeList.Count; index++)
             {
@@ -32,7 +38,7 @@ namespace NEOTwewyArchipelagoMod.HarmonyPatches
                 //MelonLogger.Msg($"{diveMaster.Id} Prize: {prize.PrizeType} - {prize.PrizeStatus} - {prize.CharacterPt} - {prize.Item}");
                 // 10401 Prize: CharacterPt - Bronze - 2 - Invalid
 
-                GameLocationID diveRewardID = new(diveMaster.Id + ArchipelagoData.DIVE_RANK_MODIFIER[(SaveDataDive.EPrizeStatus)prize.PrizeStatus]);
+                GameLocationID diveRewardID = new(diveMaster.Id + ArchipelagoData.DIVE_RANK_MODIFIER[prize.PrizeStatus]);
                 ArchipelagoLocationID locationID = diveRewardID.ToArchipelagoLocation(LocationType.DiveReward);
                 if (Core.save.TryGetArchipelagoItem(locationID, out ArchipelagoItem item))
                 {
@@ -48,19 +54,14 @@ namespace NEOTwewyArchipelagoMod.HarmonyPatches
                         prize.PrizeType = BattleResultUI.PrizeInfo.Type.Item;
                         prize.CharacterPt = 0;
 
-                        if (item.id == Core.ARCHIPELAGO_ITEM_ID || item.itemType != ItemType.AllItems ||item.count > 1) { 
-                            //If Count is more than 1 or archipelago item id or non AllItem
-                            prize.Item = (AllItems.ELabel)Core.ARCHIPELAGO_ITEM_ID;
-                        } else{ 
-                            //Normal Item
-                            AllItems itemObject = MasterDataBase<AllItems>.Get((int)item.id);
-                            prize.Item = (AllItems.ELabel)itemObject.mId;
-                        }
-                        
+                        //Since all items are given twice, use "ArchipelagoItemId"
+                        prize.Item = (AllItems.ELabel)Core.ARCHIPELAGO_ITEM_ID;
+
                     }
 
                     Core.save.enqueueLocation(locationID);
                 }
+                //MelonLogger.Msg($"Prize: {prize.Item} <- {prize.PrizeStatus}");
                 __instance.mDivePrizeList[index] = prize;
             }
 
@@ -74,6 +75,28 @@ namespace NEOTwewyArchipelagoMod.HarmonyPatches
                 }
             }
             
+        }
+
+        [HarmonyPrefix]
+        [HarmonyPatch("OpenDivePrizeGetDialog")]
+        public static void PreOpenDivePrizeGetDialog(BattleResultUI __instance)
+        {
+            if (currentDive == Dive.ELabel.Invalid)
+            {
+                return;
+            }
+            int diveID = (int)currentDive;
+            BattleResultUI.PrizeInfo prize = __instance.mDivePrizeList[0];
+            GameLocationID diveRewardID = new(diveID + ArchipelagoData.DIVE_RANK_MODIFIER[prize.PrizeStatus]);
+            ArchipelagoLocationID locationID = diveRewardID.ToArchipelagoLocation(LocationType.DiveReward);
+
+            if (Core.save.TryGetArchipelagoItem(locationID, out ArchipelagoItem item))
+            {
+                if(item.id != NEOTwewyDataManager.DIVE_FP_ID)
+                {
+                    PatchDialogGetUI.currentItem = item;
+                }
+            }
         }
     }
 

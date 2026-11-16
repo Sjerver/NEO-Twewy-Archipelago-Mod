@@ -90,7 +90,20 @@ namespace NEOTwewyArchipelagoMod.HarmonyPatches
                 string brandSpriteName = $"brand_{brandString}";
                 Sprite sprite = UISpriteBank.Instance.GetSprite(brandAtlasPath, brandSpriteName);
                 setSprite(sprite);
-            }  
+            } else if (item.itemType == ItemType.Skill)
+            {
+                byte[] archi_data = File.ReadAllBytes("Mods/NeoTwewyArchipelago/Resources/skill_book.png");
+
+                Texture2D archi_tex = new Texture2D(2, 2);
+                ImageConversion.LoadImage(archi_tex, archi_data);
+
+                Sprite sprite = Sprite.Create(
+                    archi_tex,
+                    new Rect(0, 0, archi_tex.width, archi_tex.height),
+                    new Vector2(0.5f, 0.5f)
+                );
+                setSprite(sprite);
+            }
         }
     }
 
