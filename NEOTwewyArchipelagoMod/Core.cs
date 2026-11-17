@@ -1,15 +1,18 @@
 ﻿using Archipelago.MultiClient.Net.Enums;
 using Archipelago.MultiClient.Net.Exceptions;
 using Archipelago.MultiClient.Net.MessageLog.Messages;
+using Archipelago.MultiClient.Net.MessageLog.Parts;
 using Archipelago.MultiClient.Net.Models;
 using Il2Cpp;
 using Il2CppCriMana;
 using Il2CppInterop.Runtime;
 using Il2CppMaster;
+using Il2CppTMPro;
 using MelonLoader;
 using NEOTwewyArchipelagoMod.HarmonyPatches;
 using Newtonsoft.Json;
 using System.Collections.Concurrent;
+using System.Data;
 using UnityEngine;
 using static Il2CppRootMotion.FinalIK.InteractionObject;
 
@@ -76,9 +79,10 @@ namespace NEOTwewyArchipelagoMod
         private DateTime _lastConnection = DateTime.MinValue;
 
         //Current state on whether we can sync local save data
-        public static SyncState syncState = SyncState.Offline;
+        public static SyncState syncState = SyncState.NoConnection;
 
         public static ConcurrentQueue<LogMessage> messageQueue = new ConcurrentQueue<LogMessage>();
+        public static string currentMessage = "";
 
         public override void OnInitializeMelon()
         {
@@ -109,18 +113,30 @@ namespace NEOTwewyArchipelagoMod
                 _ = TryReconnect();
             }
 
-            if(messageQueue.Count > 0)
+            if (!messageQueue.IsEmpty)
             {
-                if(messageQueue.TryDequeue(out LogMessage message))
+                if (messageQueue.TryDequeue(out LogMessage message))
                 {
                     MelonLogger.MsgDirect(MelonLoader.Logging.ColorARGB.Gold, $"[Archipelago] {message}");
+                    currentMessage = "";
+                    foreach (MessagePart part in message.Parts)
+                    {
+                        string hexColor = $"#{part.Color.R:X2}{part.Color.G:X2}{part.Color.B:X2}";
+                        currentMessage += $"<color={hexColor}>{part.ToString()}</color>";
+                    }
+                    if (message.ToString().Length > 50)
+                    {
+                        float modifier = Math.Max(0.5f, 50f / message.ToString().Length);
+                        int sizePercentage = (int)(modifier * 100);
+                        currentMessage = $"<size={sizePercentage}%>{currentMessage}</size>";
+                    }
                 }
             }
 
 
             if (!inBattle && inField)
             { //Only if the battle scene is not loaded and the field scene is loaded
-                if (syncState == SyncState.Ready && initalized)
+                if (syncState == SyncState.Connected && initalized)
                 {
                     if (client.IsConnected && save.getPendingLocationSize() > 0)
                     {//If we have locations we need to do send to the server
@@ -225,6 +241,29 @@ namespace NEOTwewyArchipelagoMod
                     if (rewardSafety && archiItemDisplayQueue.Count > 0 && !processingArchiItem && FieldManager.Instance.IsMoveStatus())
                     {
                         ProcessNextArchipelagoItem();
+                    }
+                }
+                //Field UI Changes for Messages and "Connection" Text
+                if (rewardSafety)
+                {
+                    FieldInfoUI ui = FieldManager.Instance.GetFieldMapUI<FieldMapUIOperationGuide>().FieldInfoUI;
+                    //foreach (Il2CppSystem.Collections.Generic.KeyValuePair<string, Il2CppUI.Utility.UIText> pair in ui.mUITextList)
+                    //{
+                    //    MelonLogger.Msg($"{pair.Key}: {pair.Value.Text.CurrentText}");
+                    //}
+                    if(ui.GetUIText("Text_board").Text.CurrentText != currentMessage);
+                    {
+                        TextMeshProUGUI text = ui.GetUIText("Text_board").Text.m_Text;
+                        text.enableAutoSizing = true;
+                        ui.SetText("Text_board", currentMessage);
+                        text.ForceMeshUpdate();
+                    }
+
+                    DifficultyLevel.ELabel difficulty = SaveLoadController.Get<SaveDataBattle>().Difficulty;
+                    string difficultyString = $"{difficulty.ToString()} [{syncState.ToString()}]";
+                    if (ui.GetUIText("Text_Difficulty_Param").Text.CurrentText != difficultyString)
+                    {
+                        ui.SetText("Text_Difficulty_Param", difficultyString);
                     }
                 }
 
@@ -543,12 +582,12 @@ namespace NEOTwewyArchipelagoMod
             if (!client.IsConnected)
             {
                 //MelonLogger.Msg("Can#t get server seed");
-                syncState = SyncState.Offline;
+                syncState = SyncState.NoConnection;
             }
             else if (save.getSeed() == client.session.RoomState.Seed)
             {
                 //MelonLogger.Msg("Current Seed does match save file");
-                syncState = SyncState.Ready;
+                syncState = SyncState.Connected;
             }
             else
             {

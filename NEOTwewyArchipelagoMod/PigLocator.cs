@@ -10,7 +10,7 @@ namespace NEOTwewyArchipelagoMod
 {
     public static class PigLocator
     {
-        private static string PIG_PATH = "\"Mods/NeoTwewyArchipelago/Data/pig_locations.json\";";
+        private static string PIG_PATH = "Mods/NeoTwewyArchipelago/Data/pig_locations.json";
 
         private static bool __pigInit = false;
 
@@ -47,13 +47,13 @@ namespace NEOTwewyArchipelagoMod
                     catch (Exception e)
                     {
                         MelonLogger.Error(e);
-                        MelonLogger.MsgDirect(MelonLoader.Logging.ColorARGB.Red, "File missing, please make sure you installed the mod correctly!");
+                        MelonLogger.MsgDirect(MelonLoader.Logging.ColorARGB.Red, $"File missing at {PIG_PATH}, please make sure you installed the mod correctly!");
                         return;
                     }
                 }
                 else
                 {
-                    MelonLogger.MsgDirect(MelonLoader.Logging.ColorARGB.Red, "File missing, please make sure you installed the mod correctly!");
+                    MelonLogger.MsgDirect(MelonLoader.Logging.ColorARGB.Red, $"File missing at {PIG_PATH}, please make sure you installed the mod correctly!");
                 }
 
                 foreach (KeyValuePair<long, long> entry in PIG_DATA_ARCHI_MAP)

@@ -104,7 +104,7 @@ namespace NEOTwewyArchipelagoMod
                 catch (Exception e)
                 {
                     MelonLogger.Error(e);
-                    MelonLogger.MsgDirect(MelonLoader.Logging.ColorARGB.Red, "File missing, please make sure you installed the mod correctly!");
+                    MelonLogger.MsgDirect(MelonLoader.Logging.ColorARGB.Red, $"File missing at {NOISE_INFO_PATH}, please make sure you installed the mod correctly!");
                     return;
                 }
 
@@ -416,8 +416,8 @@ namespace NEOTwewyArchipelagoMod
 
     public enum SyncState
     {
-        Offline,        // No connection
-        Ready,          // Connected to matching room
+        NoConnection,        // No connection
+        Connected,          // Connected to matching room
         WrongSeed       // Connected, but save belongs to different room
     }
 

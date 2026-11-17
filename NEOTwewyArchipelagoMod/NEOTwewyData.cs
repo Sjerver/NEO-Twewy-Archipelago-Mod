@@ -1047,12 +1047,12 @@ namespace NEOTwewyArchipelagoMod
                 catch (Exception e)
                 {
                     MelonLogger.Error(e);
-                    MelonLogger.MsgDirect(MelonLoader.Logging.ColorARGB.Red, "File missing, please make sure you installed the mod correctly!");
+                    MelonLogger.MsgDirect(MelonLoader.Logging.ColorARGB.Red, $"File missing at {SHOP_NODE_PATH}, please make sure you installed the mod correctly!");
                     return;
                 } 
             } else
             {
-                MelonLogger.MsgDirect(MelonLoader.Logging.ColorARGB.Red, "File missing, please make sure you installed the mod correctly!");
+                MelonLogger.MsgDirect(MelonLoader.Logging.ColorARGB.Red, $"File missing at {SHOP_NODE_PATH}, please make sure you installed the mod correctly!");
             }
         }
 
