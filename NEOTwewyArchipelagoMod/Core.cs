@@ -126,7 +126,7 @@ namespace NEOTwewyArchipelagoMod
                     }
                     if (message.ToString().Length > 50)
                     {
-                        float modifier = Math.Max(0.5f, 50f / message.ToString().Length);
+                        float modifier = Math.Max(0.7f, 50f / message.ToString().Length);
                         int sizePercentage = (int)(modifier * 100);
                         currentMessage = $"<size={sizePercentage}%>{currentMessage}</size>";
                     }
