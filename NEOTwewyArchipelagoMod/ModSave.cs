@@ -271,8 +271,11 @@ namespace NEOTwewyArchipelagoMod
                     }
                 }
             }
-        
-                
+            else
+            {
+                if (Core.DEBUG) { MelonLogger.Msg($"Tried to queue non real location {location} {location.GetLocationType()}"); }
+            }
+
             Data.pendingLocations.Enqueue(location);
             addCheckedLocation(location);
             Save();

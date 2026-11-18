@@ -16,10 +16,11 @@ namespace NEOTwewyArchipelagoMod
         public bool mainMenuOpen = false;
         public bool shopMenuOpen = false;
         public bool optionMenuOpen = false;
+        public bool replayMenu = false;
 
         public bool getValue()
         {
-            return errorFree && !assumeBattle && !isScanMode && isPromptStatus && !IsPreMapChangeBattle && !isBattleStart && !mainMenuOpen && !shopMenuOpen && !optionMenuOpen;
+            return errorFree && !assumeBattle && !isScanMode && isPromptStatus && !IsPreMapChangeBattle && !isBattleStart && !mainMenuOpen && !shopMenuOpen && !optionMenuOpen && !replayMenu;
         }
 
         public bool safeStatusCheck()

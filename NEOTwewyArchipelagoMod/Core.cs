@@ -145,22 +145,24 @@ namespace NEOTwewyArchipelagoMod
                         {
                             client.session.Locations.CompleteLocationChecks([location]);
                         }
-                        
+
                     }
 
                     if (client.IsConnected && hintQueue.Count > 0)
                     {
-                        if(hintQueue.TryDequeue(out ArchipelagoItem item))
+                        if (hintQueue.TryDequeue(out ArchipelagoItem item))
                         {
                             if (item is HintOnlyItem hintOnlyItem)
                             {
                                 //MelonLogger.Msg($"{hintOnlyItem.location_playerID} {hintOnlyItem.GetHintStatus()} {hintOnlyItem.locationID.Value}");
                                 client.session.Hints.CreateHints(hintOnlyItem.location_playerID, hintStatus: hintOnlyItem.GetHintStatus(), locationIds: [hintOnlyItem.locationID.Value]);
-                            } else if (item.IsItemFromOurSlot())
+                            }
+                            else if (item.IsItemFromOurSlot())
                             {
                                 //MelonLogger.Msg($"{client.Slot} Attempt to create Hint for {item.location_playerID} {item.locationName} ({item.locationID.Value}) with {item.name} [{item.GetHintStatus()}]");
                                 client.session.Hints.CreateHints(item.location_playerID, hintStatus: item.GetHintStatus(), locationIds: [item.locationID.Value]);
-                            } else
+                            }
+                            else
                             {
                                 client.session.Hints.CreateHints(item.location_playerID, locationIds: [item.locationID.Value]);
                             }
@@ -193,9 +195,9 @@ namespace NEOTwewyArchipelagoMod
                     {
                         SaveDataSkill saveDataSkill = SaveLoadController.Get<SaveDataSkill>();
                         foreach (SkillTree.ELabel tree in Enum.GetValues(typeof(SkillTree.ELabel)))
-                        { 
-                            if((int)tree < 0)  { continue; }
-                            GameLocationID gId = new GameLocationID(((long)tree) +1000);
+                        {
+                            if ((int)tree < 0) { continue; }
+                            GameLocationID gId = new GameLocationID(((long)tree) + 1000);
                             ArchipelagoLocationID archipelagoLocationID = gId.ToArchipelagoLocation(LocationType.SocialNode);
 
                             if (!saveDataSkill.GetIsHaveMet(tree) && archipelagoLocationID.TryGetItem(out ArchipelagoItem item))
@@ -237,7 +239,8 @@ namespace NEOTwewyArchipelagoMod
                 {//Outside if needed to prevent checking this superflously
                     ProcessRewardQueue();
                 }
-                if (archiItemDisplayQueue.Count > 0) {
+                if (archiItemDisplayQueue.Count > 0)
+                {
                     if (rewardSafety && archiItemDisplayQueue.Count > 0 && !processingArchiItem && FieldManager.Instance.IsMoveStatus())
                     {
                         ProcessNextArchipelagoItem();
@@ -251,7 +254,7 @@ namespace NEOTwewyArchipelagoMod
                     //{
                     //    MelonLogger.Msg($"{pair.Key}: {pair.Value.Text.CurrentText}");
                     //}
-                    if(ui.GetUIText("Text_board").Text.CurrentText != currentMessage);
+                    if (ui.GetUIText("Text_board").Text.CurrentText != currentMessage) ;
                     {
                         TextMeshProUGUI text = ui.GetUIText("Text_board").Text.m_Text;
                         text.enableAutoSizing = true;
@@ -278,8 +281,9 @@ namespace NEOTwewyArchipelagoMod
                 //SaveLoadController.Get<SaveDataSkill>().SetIsRelationship(SkillTree.ELabel.SPH_m068, true);
                 //save.enqueueReward(new QueuedReward(33001, 1000));
 
-                FieldManagerSkillPatch.ReserveSkillTreeCustom(73);
-                //SphereRewardGet.CustomRewardGet(new QueuedReward(60000 + 54, ItemType.Skill));
+                //FieldManagerSkillPatch.ReserveSkillTreeCustom(73);
+                //SphereRewardGet.CustomRewardGet(new QueuedReward(60000+41, ItemType.Skill));
+                SaveLoadController.Get<SaveDataSkill>().SetIsSkillData(-41, true);
 
             }
             if (DEBUG && Input.GetKeyDown(KeyCode.F7))
@@ -341,7 +345,7 @@ namespace NEOTwewyArchipelagoMod
                      //int goodID = (int)archiItem.locationID - (int)NEOConstants.shopLocationIDModifier;
                      //int purchaseCount = SaveLoadController.Get<SaveDataShop>().GetShopGoodsPurchases((ShopGoods.ELabel)goodID);
 
-                        if ((!NEOTwewyDataManager.NON_SHOP_ITEMS.Contains(archiItem.id) && archiItem.itemType == ItemType.AllItems) )
+                        if ((!NEOTwewyDataManager.NON_SHOP_ITEMS.Contains(archiItem.id) && archiItem.itemType == ItemType.AllItems))
                         {
                             //MelonLogger.Msg($"{archiItem.locationName} with {archiItem.name} is not in NON_SHOP_ITEMS or a AllItem");
                             //Don't give the item if the shop can give you the item normally and the location has been checked
@@ -356,7 +360,7 @@ namespace NEOTwewyArchipelagoMod
                         ItemConst.EItemType allItemType = itemObject.ItemType;
                         //MelonLogger.Msg($"{archiItem.name} at {archiItem.locationName} isBadge {itemType == ItemConst.EItemType.Badge} " +
                         //$"count {archiItem.count} archiBadge {archiItem.id != ARCHIPELAGO_ITEM_ID} locationChecked {save.IsLocationChecked(aLocationID)}");
-                        if (allItemType == ItemConst.EItemType.Badge && archiItem.id != ARCHIPELAGO_ITEM_ID && archiItem.count == 1 )
+                        if (allItemType == ItemConst.EItemType.Badge && archiItem.id != ARCHIPELAGO_ITEM_ID && archiItem.count == 1)
                         {
                             //MelonLogger.Msg($"{archiItem.name} at {archiItem.locationName} has been gotten normally already");
                             //Don't give the item if it is a badge, not the archipelago badge, has count 1 and has been checked already
@@ -365,7 +369,7 @@ namespace NEOTwewyArchipelagoMod
                         }
                     }
                     if (type == LocationType.DiveReward)
-                    { 
+                    {
                         //MelonLogger.Msg($"{archiItem.name} at {archiItem.locationName}" +
                         //    $"count {archiItem.count} archiBadge {archiItem.id != ARCHIPELAGO_ITEM_ID} locationChecked {save.IsLocationChecked(aLocationID)}");
                         ItemType[] displayableItemTypes = [ItemType.AllItems, ItemType.OtherGame];
@@ -377,17 +381,17 @@ namespace NEOTwewyArchipelagoMod
                         }
                     }
                     if (type == LocationType.Skill)
-                    { 
+                    {
                         Skill skillObject = MasterDataBase<Skill>.Get((int)gLocationID.Value);
-                        if (skillObject.ShopReward > 0 && (archiItem.itemType == ItemType.AllItems ||archiItem.itemType == ItemType.OtherGame))
+                        if (skillObject.ShopReward > 0 && (archiItem.itemType == ItemType.AllItems || archiItem.itemType == ItemType.OtherGame))
                         { //Items from skill "containers" can be gotten normally
                             //MelonLogger.Msg($"{archiItem.name} at {archiItem.locationName} has been gotten normally already");
                             return;
                         }
 
-                }
+                    }
 
-            }
+                }
 
             }
             else
@@ -409,7 +413,7 @@ namespace NEOTwewyArchipelagoMod
                 if (sceneName == "Battle")
                 { inBattle = true; }
                 else if (sceneName == "Field")
-                { 
+                {
                     inField = true;
                     //Assume we are leaving a battle here, since we are in the field scene now
                     rewardSafety.assumeBattle = false;
@@ -429,7 +433,8 @@ namespace NEOTwewyArchipelagoMod
                 if (sceneName == "Battle")
                 { inBattle = false; }
                 else if (sceneName == "Field")
-                { inField = false;
+                {
+                    inField = false;
                     rewardSafety.assumeBattle = true;
                     //MelonLogger.Msg($"Assuming battle since we are leaving the field scene now");
                 }
@@ -474,13 +479,14 @@ namespace NEOTwewyArchipelagoMod
                     furthestDayReached++;
                     if (furthestDayReached == 5) { save.setGoalAchieved(true); }
                     return true;
-                } else
+                }
+                else
                 {
                     //MelonLogger.Msg($"Not Hinted? {!Core.save.IsHintedForDay(furthestDayReached)}");
-                    if(ModOptions.secret_report_hints.Count > 0 && !Core.save.IsHintedForDay(furthestDayReached))
+                    if (ModOptions.secret_report_hints.Count > 0 && !Core.save.IsHintedForDay(furthestDayReached))
                     {
                         List<int> foundReports = GetFoundSecretReports();
-                        foreach (KeyValuePair<int, Tuple<int,int,int>> pair in ModOptions.secret_report_hints)
+                        foreach (KeyValuePair<int, Tuple<int, int, int>> pair in ModOptions.secret_report_hints)
                         {
                             int reportID = pair.Key;
                             if (foundReports.Contains(reportID)) { continue; }
@@ -638,10 +644,10 @@ namespace NEOTwewyArchipelagoMod
 
         private static void ProcessNextArchipelagoItem()
         {//TODO Move this to another file
-            
+
             if (processingArchiItem)
                 return;
-            
+
             if (!FieldManager.Instance.IsPromptStatus() || !FieldManager.Instance.IsMoveStatus() || FieldManager.Instance.IsReserveGetDialog())
                 return;
 
@@ -651,17 +657,25 @@ namespace NEOTwewyArchipelagoMod
             ScenarioFlowManager.Instance.SetUpdateProcess(false);
             FieldManager.Instance.m_FieldPlayer.SetStateFlag(FieldPlayer.EPlayerStateFlag.DisableInput, true);
             processingArchiItem = true;
+            FieldManager.Instance.m_IsEvents = true;
+
+            foreach (FieldMapShop shop in FieldManager.Instance.MapManager.FieldMapShopList)
+            {
+                shop.OnScanMode(true); //Shop Block Icon
+                shop.m_FieldUIPrompt.SetShow(false); //Hides the prompt
+            }
 
             ArchipelagoItem item = archiItemDisplayQueue.Dequeue();
             //MelonLogger.Msg($"Archipelago dialog open call for {item.name} {item.id} {item.itemType} from {item.locationName}");
-            if(item.itemType == ItemType.VIP)
+            if (item.itemType == ItemType.VIP)
             {
                 DialogGetUI.OpenVipLevelUpDialog(
                     (Brand.ELabel)item.id,
                     DelegateSupport.ConvertDelegate<Il2CppSystem.Action>(OnArchipelagoUIEnd),
                     DelegateSupport.ConvertDelegate<Il2CppSystem.Action<DialogGetUI>>(OnArchipelagoDialogEnded)
                 );
-            } else if(item.itemType == ItemType.Skill)
+            }
+            else if (item.itemType == ItemType.Skill)
             {
                 SkillDialogGet.CustomOpenRewardInfoDialog(
                     item,
@@ -669,7 +683,8 @@ namespace NEOTwewyArchipelagoMod
                     DelegateSupport.ConvertDelegate<Il2CppSystem.Action<DialogGetUI>>(OnArchipelagoDialogEnded)
                     );
             }
-            else {
+            else
+            {
                 DialogGetUI.OpenItemGetDialog(
                     (AllItems.ELabel)item.id,
                     -((int)item.locationID.Value), //Gets passed as negative location value to distinguish it from "real" item
@@ -685,6 +700,12 @@ namespace NEOTwewyArchipelagoMod
             processingArchiItem = false;
             FieldManager.Instance.m_FieldPlayer.SetStateFlag(FieldPlayer.EPlayerStateFlag.DisableInput, false);
             ScenarioFlowManager.Instance.SetUpdateProcess(true);
+            FieldManager.Instance.m_IsEvents = false;
+            foreach (FieldMapShop shop in FieldManager.Instance.MapManager.FieldMapShopList)
+            {
+                shop.OnScanMode(false);
+                shop.m_FieldUIPrompt.SetShow(true);
+            }
             //ProcessNextArchipelagoItem();
         }
 
@@ -696,8 +717,9 @@ namespace NEOTwewyArchipelagoMod
 
     }
 
-    public class QueuedReward: ArchipelagoItem{//This class is used for rewards received from the server
-        
+    public class QueuedReward : ArchipelagoItem
+    {//This class is used for rewards received from the server
+
         public long ItemIndex { get; set; }
 
         [JsonConstructor]
@@ -708,12 +730,12 @@ namespace NEOTwewyArchipelagoMod
         }
 
         public QueuedReward(int itemId, ItemType type = ItemType.AllItems) :
-            base(itemId, "INVALID ITEM",new ArchipelagoLocationID(-1), "INVALID LOCATION", itemId, "NO GAME",1, "NO PLAYER", type, ItemFlags.None, Core.client.Slot)
+            base(itemId, "INVALID ITEM", new ArchipelagoLocationID(-1), "INVALID LOCATION", itemId, "NO GAME", 1, "NO PLAYER", type, ItemFlags.None, Core.client.Slot)
         {//Used for debug item giving
             ItemIndex = -1000;
         }
 
-        public QueuedReward(PendingItem pendingItem): 
+        public QueuedReward(PendingItem pendingItem) :
             base(pendingItem)
         {
             ItemIndex = pendingItem.Index;
