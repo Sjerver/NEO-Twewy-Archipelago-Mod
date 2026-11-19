@@ -359,7 +359,7 @@ namespace NEOTwewyArchipelagoMod.HarmonyPatches
             } else if(currentSkill != null)
             {
                 Skill skill = MasterDataBase<Skill>.Get((int)currentSkill.id);
-                if (skill.Name == "SKL_Name_0033") //TODO Did not Work!
+                if (skill.Name == "SKL_Name_0033")
                 {//For "Bon Appetit" we should get the shops name
                     foreach (Shop shop in MasterDataBase<Shop>.Array)
                     {

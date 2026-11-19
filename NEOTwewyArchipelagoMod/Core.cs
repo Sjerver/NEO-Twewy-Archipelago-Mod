@@ -16,7 +16,7 @@ using System.Data;
 using UnityEngine;
 using static Il2CppRootMotion.FinalIK.InteractionObject;
 
-[assembly: MelonInfo(typeof(NEOTwewyArchipelagoMod.Core), "NEOTwewyArchipelagoMod", "0.0.5", "sjerver", null)]
+[assembly: MelonInfo(typeof(NEOTwewyArchipelagoMod.Core), "NEOTwewyArchipelagoMod", "0.1.0", "Sjerver", null)]
 [assembly: MelonGame("SQUARE ENIX", "NEO: The World Ends with You")]
 
 namespace NEOTwewyArchipelagoMod

@@ -4,7 +4,7 @@ using MelonLoader;
 namespace NEOTwewyArchipelagoMod
 {
     public class RewardSafety
-    { //TODO: Menus should not be save [misclicks are annoying]
+    {
         public bool isScanMode = false;
         public bool isPromptStatus = false;
         public bool IsPreMapChangeBattle = false;

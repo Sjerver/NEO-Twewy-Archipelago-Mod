@@ -67,11 +67,11 @@ namespace NEOTwewyArchipelagoMod.HarmonyPatches
 
 
             if(__instance.mNoizePrizeList != null)
-            { //TODO: Find out if this is blue boss noize?
+            { //Find out if this is blue boss noize? It is not but keep it so we can figure out what it is
                 for (int index = 0; index < __instance.mNoizePrizeList.Count; index++)
                 {
                     BattleResultUI.PrizeInfo prize = __instance.mNoizePrizeList[index];
-                    MelonLogger.Msg($"{diveMaster.Id} mNoizePrizeList[{index}] Prize: {prize.PrizeType} - {prize.PrizeStatus} - {prize.CharacterPt} - {prize.Item}");
+                    MelonLogger.Error($"{diveMaster.Id} mNoizePrizeList[{index}] Prize: {prize.PrizeType} - {prize.PrizeStatus} - {prize.CharacterPt} - {prize.Item}");
                 }
             }
             
