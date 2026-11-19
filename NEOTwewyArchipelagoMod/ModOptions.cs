@@ -17,12 +17,12 @@ namespace NEOTwewyArchipelagoMod
         public static bool sns = false;
         public static bool shops = false;
         public static double cutscene_skip_speed = 10.0;
-        public static Dictionary<int, int> fp_costs = new Dictionary<int, int>();
+        public static Dictionary<long, int> fp_costs = new Dictionary<long, int>();
 
         public static bool shop_hints = false;
         public static bool skill_hints = false;
-        //Dictionary<ArchipelagoItemId, Tupley<PlayerId, LocationId, SphereNumber>>> 
-        public static Dictionary<int, Tuple<int, int,int>> secret_report_hints = new Dictionary<int, Tuple<int, int,int>>();
+        //Dictionary<ArchipelagoItemId, Tuple<<PlayerId, LocationId, SphereNumber>>> 
+        public static Dictionary<long, Tuple<long, long, long>> secret_report_hints = new Dictionary<long, Tuple<long, long, long>>();
 
         public static void UpdateOption(string key, object value)
         {
@@ -44,10 +44,10 @@ namespace NEOTwewyArchipelagoMod
                 typeof(ModOptions).GetField(key).SetValue(null, (DLCOption)Convert.ToInt32(value));
             } else if (key == "fp_costs")
             {
-                typeof(ModOptions).GetField(key).SetValue(null, ((JObject)value).ToObject<Dictionary<int,int>>());
+                typeof(ModOptions).GetField(key).SetValue(null, ((JObject)value).ToObject<Dictionary<long, int>>());
             } else if (key == "secret_report_hints")
             {
-                Dictionary<int, int[]> hints =  ((JObject)value).ToObject<Dictionary<int, int[]>>();
+                Dictionary<long, long[]> hints =  ((JObject)value).ToObject<Dictionary<long, long[]>>();
                 secret_report_hints = hints.ToDictionary(
                     pair => pair.Key,
                     pair => Tuple.Create(pair.Value[0], pair.Value[1], pair.Value[2])

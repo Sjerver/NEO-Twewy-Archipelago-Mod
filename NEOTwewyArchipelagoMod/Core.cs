@@ -254,7 +254,7 @@ namespace NEOTwewyArchipelagoMod
                     //{
                     //    MelonLogger.Msg($"{pair.Key}: {pair.Value.Text.CurrentText}");
                     //}
-                    if (ui.GetUIText("Text_board").Text.CurrentText != currentMessage) ;
+                    if (ui.GetUIText("Text_board").Text.CurrentText != currentMessage)
                     {
                         TextMeshProUGUI text = ui.GetUIText("Text_board").Text.m_Text;
                         text.enableAutoSizing = true;
@@ -486,11 +486,11 @@ namespace NEOTwewyArchipelagoMod
                     if (ModOptions.secret_report_hints.Count > 0 && !Core.save.IsHintedForDay(furthestDayReached))
                     {
                         List<int> foundReports = GetFoundSecretReports();
-                        foreach (KeyValuePair<int, Tuple<int, int, int>> pair in ModOptions.secret_report_hints)
+                        foreach (KeyValuePair<long, Tuple<long, long, long>> pair in ModOptions.secret_report_hints)
                         {
-                            int reportID = pair.Key;
-                            if (foundReports.Contains(reportID)) { continue; }
-                            Core.hintQueue.Enqueue(new HintOnlyItem(reportID, pair.Value.Item2, pair.Value.Item1));
+                            long reportID = pair.Key;
+                            if (foundReports.Contains((int)reportID)) { continue; }
+                            Core.hintQueue.Enqueue(new HintOnlyItem(reportID, pair.Value.Item2, (int)pair.Value.Item1));
                             Core.save.SetHintedForDay(furthestDayReached);
                             break;
                         }
