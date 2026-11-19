@@ -4,6 +4,7 @@ using Il2CppComicEvent;
 using Il2CppMaster;
 using Il2CppUI.MainMenu;
 using Il2CppUI.Option;
+using Il2CppUI.Replay;
 using Il2CppUI.Shop;
 using MelonLoader;
 using System;
@@ -20,12 +21,12 @@ namespace NEOTwewyArchipelagoMod.HarmonyPatches
         [HarmonyPatch("OnCloseMainMenu")]
         [HarmonyPostfix]
         public static void OnCloseMainMenu()
-        {Core.rewardSafety.mainMenuOpen = false;}
+        { Core.rewardSafety.mainMenuOpen = false; }
 
         [HarmonyPatch("OnOpenMainMenu")]
         [HarmonyPostfix]
         public static void OnOpenMainMenu()
-        {Core.rewardSafety.mainMenuOpen = true;}
+        { Core.rewardSafety.mainMenuOpen = true; }
     }
 
     [HarmonyPatch(typeof(ShopUI))]
@@ -34,12 +35,40 @@ namespace NEOTwewyArchipelagoMod.HarmonyPatches
         [HarmonyPatch("OnAwake")]
         [HarmonyPostfix]
         public static void OnAwake()
-        { Core.rewardSafety.shopMenuOpen = true;}
+        { Core.rewardSafety.shopMenuOpen = true; }
 
         [HarmonyPatch("OnDelete")]
         [HarmonyPostfix]
         public static void OnDelete()
-        { Core.rewardSafety.shopMenuOpen = false;}
+        { Core.rewardSafety.shopMenuOpen = false; }
+    }
+
+    [HarmonyPatch(typeof(ShopFoodUI))]
+    public static class PatchShopFoodUI
+    {
+        [HarmonyPatch("OnAwake")]
+        [HarmonyPostfix]
+        public static void OnAwake()
+        { Core.rewardSafety.shopMenuOpen = true; }
+
+        [HarmonyPatch("OnDelete")]
+        [HarmonyPostfix]
+        public static void OnDelete()
+        { Core.rewardSafety.shopMenuOpen = false; }
+    }
+
+    [HarmonyPatch(typeof(ReplayUI))]
+    public static class PatchReplayUI
+    {
+        [HarmonyPatch("OnAwake")]
+        [HarmonyPostfix]
+        public static void OnAwake()
+        { Core.rewardSafety.replayMenu = true; }
+
+        [HarmonyPatch("OnDelete")]
+        [HarmonyPostfix]
+        public static void OnDelete()
+        { Core.rewardSafety.replayMenu = false; }
     }
 
     [HarmonyPatch(typeof(MainOptionUI))]
@@ -47,16 +76,15 @@ namespace NEOTwewyArchipelagoMod.HarmonyPatches
     {
         [HarmonyPatch("OpenMainOption")]
         [HarmonyPostfix]
-        public static void OpenMainOption() 
+        public static void OpenMainOption()
         { //MelonLogger.Msg("MainOptionUI opened");
-            Core.rewardSafety.optionMenuOpen = true;}
+            Core.rewardSafety.optionMenuOpen = true; }
 
         [HarmonyPatch("EndMainOption")]
         [HarmonyPostfix]
-        public static void EndMainOption() 
+        public static void EndMainOption()
         { //MelonLogger.Msg("MainOptionUI closed");
-            Core.rewardSafety.optionMenuOpen = false;}
+            Core.rewardSafety.optionMenuOpen = false; }
     }
 
-    //TODO: Add replay menu
 }

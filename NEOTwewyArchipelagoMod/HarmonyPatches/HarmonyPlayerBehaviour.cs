@@ -23,14 +23,14 @@ namespace NEOTwewyArchipelagoMod.HarmonyPatches
             if (CustomEventData.memberToRewardID.TryGetValue(__1, out GameLocationID rewardID))
             {
                 ArchipelagoLocationID location = ArchipelagoData.GetArchipelagoLocation(rewardID, LocationType.ScenarioReward);
-                if(Core.save.TryGetArchipelagoItem(location, out ArchipelagoItem item))
-                {
-                    if (item.id == Core.ARCHIPELAGO_ITEM_ID && !Core.save.IsLocationChecked(location))
-                    {
-                        Core.archiItemDisplayQueue.Enqueue(item);
-                    }
-                }
-                Core.queueCustomLocation(location);
+                //if(Core.save.TryGetArchipelagoItem(location, out ArchipelagoItem item))
+                //{
+                //    if (item.id == Core.ARCHIPELAGO_ITEM_ID && !Core.save.IsLocationChecked(location))
+                //    {
+                //        Core.archiItemDisplayQueue.Enqueue(item);
+                //    }
+                //}
+                Core.save.enqueueLocation(location);
             }
 
         }

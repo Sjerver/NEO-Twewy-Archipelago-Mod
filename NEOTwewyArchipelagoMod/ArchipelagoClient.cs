@@ -7,6 +7,7 @@ using Archipelago.MultiClient.Net.Models;
 using Il2Cpp;
 using MelonLoader;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -22,16 +23,19 @@ namespace NEOTwewyArchipelagoMod
         public bool IsConnected { get; private set; } = false;
 
         //Queue of items the client received from the server
-        public Queue<PendingItem> pendingItems = new();
+        public ConcurrentQueue<PendingItem> pendingItems = new();
 
         private DateTime _lastSocketError = DateTime.MinValue;
+
+        public int Slot = -1;
 
         public bool AttemptConnectionSync()
         { //Attempt to connect synchronously at boot
             try
             {
                 session = ArchipelagoSessionFactory.CreateSession(Config.Data.hostName, Config.Data.port);
-            } catch (Exception e)
+            }
+            catch (Exception e)
             {
                 MelonLogger.Msg($"Failed to create session: {e.GetBaseException().Message}");
                 return false; // Did not connect, show the user the contents of `errorMessage`
@@ -74,6 +78,7 @@ namespace NEOTwewyArchipelagoMod
                 if (result is LoginSuccessful)
                 {
                     IsConnected = true;
+                    Slot = session.ConnectionInfo.Slot;
                     MelonLogger.Msg("Connected!");
                 }
             }
@@ -119,6 +124,7 @@ namespace NEOTwewyArchipelagoMod
             // initial connection (e.g. a copy of the slot data as `loginSuccess.SlotData`)
             LoginInfo = (LoginSuccessful)result;
             IsConnected = LoginInfo.Successful;
+            Slot = session.ConnectionInfo.Slot;
             MelonLogger.Msg("Connected!");
             MelonLogger.Msg($"Player: {LoginInfo.Slot}");
             MelonLogger.Msg($"Team: {LoginInfo.Team}");
@@ -145,14 +151,14 @@ namespace NEOTwewyArchipelagoMod
         {
             var item = helper.PeekItem();
             //if(Core.DEBUG) { MelonLogger.Msg($"Queued {item.ItemName}"); }
-            
-            pendingItems.Enqueue(new PendingItem(helper.DequeueItem(),helper.Index));
+
+            pendingItems.Enqueue(new PendingItem(helper.DequeueItem(), helper.Index));
 
         }
 
-        private void OnSocketError(Exception e,string message)
+        private void OnSocketError(Exception e, string message)
         {
-            if((DateTime.Now - _lastSocketError).TotalSeconds < 150)
+            if (DateTime.Now >= _lastSocketError.AddSeconds(150))
             {
                 MelonLogger.Error($"Archipelago socket error: {message}");
                 _lastSocketError = DateTime.Now;
@@ -162,7 +168,7 @@ namespace NEOTwewyArchipelagoMod
 
         private void OnMessageReceived(LogMessage message)
         {
-            MelonLogger.MsgDirect(MelonLoader.Logging.ColorARGB.Gold, $"[Archipelago] {message}");
+            Core.messageQueue.Enqueue(message);
         }
     }
 

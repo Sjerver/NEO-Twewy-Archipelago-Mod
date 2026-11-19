@@ -1,4 +1,5 @@
-﻿using Archipelago.MultiClient.Net.Models;
+﻿using Archipelago.MultiClient.Net.Enums;
+using Archipelago.MultiClient.Net.Models;
 using Harmony;
 using Il2Cpp;
 using Il2CppMaster;
@@ -21,14 +22,17 @@ namespace NEOTwewyArchipelagoMod
 
         public static bool DataLoaded { get; set; } = false;
 
-        //itemID, RewardID
+        //ArchipelagoItemID, RewardID
         public static Dictionary<long, NEOTwewyItemData> ReceivableRewards = new();
 
         public static long DLC_LOCATION_MODIFIER = 1_900_000;
         public static long SCENARIO_LOCATION_MODIFIER   = 1_000_000;
+        public static long SKILL_LOCATION_MODIFIER      = 600_000;
+        public static long SOCIAL_NODE_LOCATION_MODIFIER = 500_000;
         public static long PIG_DROP_MODIFIER            = 410_000;
         public static long NOISE_DROP_MODIFIER          = 400_000;
         public static long DIVE_LOCATION_MODIFIER       = 300_000;
+        public static long VIP_LOCATION_MODIFIER        = 210_000;
         public static long SHOP_LOCATION_MODIFIER       = 200_000;
         
 
@@ -54,6 +58,14 @@ namespace NEOTwewyArchipelagoMod
             {
                 return LocationType.ScenarioReward;
             }
+            else if (id >= SKILL_LOCATION_MODIFIER)
+            {
+                return LocationType.Skill;
+            }
+            else if (id >= SOCIAL_NODE_LOCATION_MODIFIER)
+            {
+                return LocationType.SocialNode;
+            }
             else if (id >= PIG_DROP_MODIFIER)
             {
                 return LocationType.PigDrop;
@@ -65,6 +77,10 @@ namespace NEOTwewyArchipelagoMod
             else if (id >= DIVE_LOCATION_MODIFIER)
             {
                 return LocationType.DiveReward;
+            }
+            else if (id >= VIP_LOCATION_MODIFIER)
+            {
+                return LocationType.VIP;
             }
             else if (id >= SHOP_LOCATION_MODIFIER)
             {
@@ -95,8 +111,17 @@ namespace NEOTwewyArchipelagoMod
                 case LocationType.ScenarioReward:
                     gameID = gameID - SCENARIO_LOCATION_MODIFIER;
                     break;
+                case LocationType.Skill:
+                    gameID = gameID - SKILL_LOCATION_MODIFIER;
+                    break;
+                case LocationType.SocialNode:
+                    gameID = gameID - SOCIAL_NODE_LOCATION_MODIFIER;
+                    break;
                 case LocationType.ShopGood:
                     gameID = gameID - SHOP_LOCATION_MODIFIER;
+                    break;
+                case LocationType.VIP:
+                    gameID = gameID - VIP_LOCATION_MODIFIER;
                     break;
                 case LocationType.DiveReward:
                     gameID = gameID - DIVE_LOCATION_MODIFIER;
@@ -133,8 +158,17 @@ namespace NEOTwewyArchipelagoMod
                 case LocationType.ScenarioReward:
                     archiID = archiID + SCENARIO_LOCATION_MODIFIER;
                     break;
+                case LocationType.Skill:
+                    archiID += SKILL_LOCATION_MODIFIER;
+                    break;
+                case LocationType.SocialNode:
+                    archiID += SOCIAL_NODE_LOCATION_MODIFIER;
+                    break;
                 case LocationType.ShopGood:
                     archiID = archiID + SHOP_LOCATION_MODIFIER;
+                    break;
+                case LocationType.VIP:
+                    archiID = archiID + VIP_LOCATION_MODIFIER;
                     break;
                 case LocationType.DiveReward:
                     archiID = archiID + DIVE_LOCATION_MODIFIER;
@@ -187,10 +221,18 @@ namespace NEOTwewyArchipelagoMod
         /// Example: 5 FP is only 1 item in the archipelago world
         /// </summary>
         public long count { get; set; }
+        /// <summary>
+        /// The player the item is for
+        /// </summary>
         public string player { get; set; }
 
+        public ItemType itemType { get; set; }
 
-        public ArchipelagoItem(long id, string name, ArchipelagoLocationID locationID, string locationName, long archipelagoID, string itemGame, long count, string player)
+        public ItemFlags flags { get; set; }
+        public int location_playerID { get; set; }
+
+        [JsonConstructor]
+        public ArchipelagoItem(long id, string name, ArchipelagoLocationID locationID, string locationName, long archipelagoID, string itemGame, long count, string player, ItemType type, ItemFlags flags, int location_playerID)
         {
             this.id = id;
             this.name = name;
@@ -200,13 +242,97 @@ namespace NEOTwewyArchipelagoMod
             this.itemGame = itemGame;
             this.count = count;
             this.player = player;
+            this.itemType = type;
+            this.flags = flags;
+            this.location_playerID = location_playerID;
         }
-        
+
+        public ArchipelagoItem(long id, ScoutedItemInfo info)
+        {
+            long itemCount = 1;
+            ItemType itemType = ItemType.OtherGame;
+            if (info.ItemGame == Core.GAME_NAME && info.Player.Name == Config.Data.slotName)
+            {
+                itemCount = NEOTwewyDataManager.item_data[info.ItemName].count;
+                itemType = NEOTwewyDataManager.item_data[info.ItemName].type;
+            }
+
+            this.id = id;
+            name = info.ItemName;
+            locationID = new ArchipelagoLocationID(info.LocationId);
+            locationName = info.LocationName;
+            archipelagoID = info.ItemId;
+            itemGame = info.ItemGame;
+            count = itemCount;
+            player = info.Player.Name;
+            this.itemType = itemType;
+            flags = info.Flags;
+            location_playerID = Core.client.Slot;
+        }
+        /* The difference between ItemInfo and ScoutedItemInfo is:
+         * ItemInfo: Player is the one the item is LOCATED IN
+         * ScoutedItemInfo: Player is the one the item is FOR
+         */
+        public ArchipelagoItem(PendingItem pendingItem)
+        {
+            ItemInfo info = pendingItem.Item;
+            long id = ArchipelagoData.ReceivableRewards[pendingItem.Item.ItemId].id;
+
+            long itemCount = 1;
+            ItemType itemType = ItemType.OtherGame;
+            //Pending items are always for our game
+            itemCount = NEOTwewyDataManager.item_data[info.ItemName].count;
+            itemType = NEOTwewyDataManager.item_data[info.ItemName].type;
+
+
+            this.id = id;
+            name = info.ItemName;
+            locationID = new ArchipelagoLocationID(info.LocationId);
+            locationName = info.LocationName;
+            archipelagoID = info.ItemId;
+            itemGame = info.ItemGame;
+            count = itemCount;
+            player = Config.Data.slotName; //Item always for us
+            this.itemType = itemType;
+            flags = info.Flags;
+            location_playerID = info.Player.Slot;
+        }
+
+        public override string ToString()
+        {
+            return $"{id}/{archipelagoID}: {name} Ct:{count} [{locationID} {locationName}] [{itemGame} {player}] {itemType}";
+        }
+
+
         public bool IsItemFromOurSlot()
         {
             return itemGame == Core.GAME_NAME && player == Config.Data.slotName;
         }
 
+        public bool IsProgression()
+        {
+            return (flags & ItemFlags.Advancement) == ItemFlags.Advancement;
+        }
+
+        public HintStatus GetHintStatus()
+        {
+            if((flags & ItemFlags.Advancement) == ItemFlags.Advancement)
+            {
+                return HintStatus.Priority;
+            } else if((flags & ItemFlags.Trap) == ItemFlags.Trap)
+            {
+                return HintStatus.Avoid;
+            }
+            else if ((flags & ItemFlags.NeverExclude) == ItemFlags.NeverExclude)
+            {
+                return HintStatus.Priority;
+            }
+            else if ((flags & ItemFlags.None) == ItemFlags.None)
+            {
+                return HintStatus.NoPriority;
+            }
+            return HintStatus.Unspecified;
+        }
     }
 
     public enum ItemType
@@ -214,7 +340,8 @@ namespace NEOTwewyArchipelagoMod
         OtherGame,
         AllItems,
         Skill,
-        CharacterNode
+        SocialNode,
+        VIP
     }
 
     public enum LocationType
@@ -227,7 +354,9 @@ namespace NEOTwewyArchipelagoMod
         NoiseDrop,
         Skill,
         PigDrop,
-        DLC
+        DLC,
+        SocialNode,
+        VIP
     }
 
     [TypeConverter(typeof(GameLocationIDTypeConverter))]
@@ -243,5 +372,18 @@ namespace NEOTwewyArchipelagoMod
         public GameLocationID ToGameLocation() => ArchipelagoData.GetGameLocation(this);
 
         public LocationType GetLocationType() => ArchipelagoData.GetLocationType(this);
+
+        public bool TryGetItem(out ArchipelagoItem item)
+        {
+            return Core.save.TryGetArchipelagoItem(this, out item);
+        }
+
+        public void CreateHint()
+        {
+            if(Core.save.TryGetArchipelagoItem(this, out ArchipelagoItem item))
+            {
+                Core.hintQueue.Enqueue(item);
+            }
+        }
     }
 }

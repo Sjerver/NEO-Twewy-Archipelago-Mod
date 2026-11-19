@@ -1,8 +1,11 @@
 ﻿using HarmonyLib;
 using Il2Cpp;
 using Il2CppHnLib;
+using Il2CppInterop.Runtime;
 using Il2CppMaster;
+using Il2CppUI.MainMenu.Badge;
 using Il2CppUI.Report;
+using Il2CppUI.Shop;
 using Il2CppUI.Utility;
 using MelonLoader;
 using System;
@@ -63,19 +66,25 @@ namespace NEOTwewyArchipelagoMod.HarmonyPatches
                     //MelonLogger.Msg(item.locationName);
                     DropInfo.DropBadge badge = __instance.mDropBadgeList[i];
                     badge.mBadgeNameText.SetText($"{item.name}");
-                    //TODO: Pin Number -> Game/Slot?
-                    if (item.IsItemFromOurSlot())
+                    
+                    if (!item.IsItemFromOurSlot())
                     {
-                        AllItems itemObject = MasterDataBase<AllItems>.Get((int)item.id);
-
-                        string atlasPath = UIUtility.GetItemAtlasPath(itemObject);
-                        string spriteName = UIUtility.GetItemImageName(itemObject);
-
-                        //MelonLogger.Msg($"{atlasPath} atlas -> spriteName {spriteName}");
-
-                        badge.mBadgeImage.m_Sprite = UISpriteBank.Instance.GetSprite(atlasPath, spriteName);
+                        badge.mBadgeNoText.SetText($"{item.player}");
                     }
+                    int brandIndex = i;
+                    IconReplacement.SetCustomSprite(item, Sprite => SetSprite(__instance, Sprite, brandIndex));
                 }
+            }
+        }
+
+
+        public static void SetSprite(DropInfo __instance, Sprite sprite, int index)
+        {
+            DropInfo.DropBadge badge = __instance.mDropBadgeList[index];
+            if (badge.mBadgeImage != null)
+            {
+                var image = badge.mBadgeImage;
+                image.sprite = sprite;
             }
         }
     }

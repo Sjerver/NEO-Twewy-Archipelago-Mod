@@ -277,6 +277,9 @@
 		<Compile Include="ArchipelagoData.cs" />
 		<Compile Include="HarmonyPatches\HarmonyDLCItems.cs" />
 		<Compile Include="HarmonyPatches\HarmonyMenus.cs" />
+		<Compile Include="HarmonyPatches\HarmonyDialogGet.cs" />
+		<Compile Include="HarmonyPatches\HarmonySkill.cs" />
+		<Compile Include="HarmonyPatches\HarmonyVIP.cs" />
 		<Compile Include="HarmonyPatches\HarmonyThink.cs" />
 		<Compile Include="ModOptions.cs" />
 		<Compile Include="NoiseDropCalc.cs" />

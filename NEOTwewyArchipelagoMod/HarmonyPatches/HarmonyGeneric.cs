@@ -42,13 +42,13 @@ namespace NEOTwewyArchipelagoMod.HarmonyPatches
                     {
                         //Add code to display something here maybe?
                     }
-                    Core.syncState = SyncState.Ready;
+                    Core.syncState = SyncState.Connected;
                     Core.save.UpdateSlotData(Core.client.LoginInfo.SlotData); 
                 }
                 else
                 {// Just start local save
                     Core.save.UpdateSlotData(Core.client.LoginInfo.SlotData);
-                    Core.syncState = SyncState.Ready;
+                    Core.syncState = SyncState.Connected;
                 }
             } else{ //Any other button
                 if (Core.client.IsConnected &&(Core.client.session.RoomState.Seed == Core.save.getSeed()))

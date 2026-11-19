@@ -7,6 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using static Il2CppCustomComponents.LinedRectGraphic.LinedRect;
+using static MelonLoader.MelonLogger;
 
 namespace NEOTwewyArchipelagoMod
 {
@@ -15,6 +16,7 @@ namespace NEOTwewyArchipelagoMod
         private static bool __noiseDropInitialized = false;
         private static bool __shopGoodsInitialized = false;
         private static bool __pigInitialized = false;
+        private static bool __snsPointsInitialized = false;
 
         public static bool isSynced() { return Core.syncState != SyncState.WrongSeed; }
 
@@ -23,6 +25,7 @@ namespace NEOTwewyArchipelagoMod
             InitializeNoiseDrops();
             InitializeShopGoods();
             InitializePigDrops();
+            InitializeSNSPoints();
         }
 
         public static void InitializeNoiseDrops()
@@ -50,7 +53,11 @@ namespace NEOTwewyArchipelagoMod
                             if (Core.save.TryGetArchipelagoItem(locationID, out var item))
                             {
                                 //MelonLogger.Msg($"{item.locationName} contains {item.name} / {item.id} used to be {enemyData.mDrop[index]} ");
-
+                                if (item.itemType != ItemType.AllItems)
+                                {
+                                    enemyData.mDrop[index] = UIUtility.GetBadgeLabel(MasterDataBase<AllItems>.Get((int)Core.ARCHIPELAGO_ITEM_ID));
+                                    continue;
+                                }
                                 AllItems itemObject = MasterDataBase<AllItems>.Get((int)item.id);
                                 ItemConst.EItemType itemType = itemObject.ItemType;
 
@@ -88,7 +95,7 @@ namespace NEOTwewyArchipelagoMod
                 if (Core.save.TryGetArchipelagoItem(gameLocationID.ToArchipelagoLocation(LocationType.ShopGood), out ArchipelagoItem archiItem))
                 {//If the shop good is an location
                     //if (Core.DEBUG) { MelonLogger.Msg($"At {archiItem.locationName} replaced {good.mItem} with {archiItem.name} "); }
-                    if (NEOTwewyDataManager.NON_SHOP_ITEMS.Contains(archiItem.id))
+                    if (NEOTwewyDataManager.NON_SHOP_ITEMS.Contains(archiItem.id) || archiItem.itemType != ItemType.AllItems)
                     { //Certain items need to be handled via archipelago
                         good.mItem = (AllItems.ELabel)Core.ARCHIPELAGO_ITEM_ID;
                     }
@@ -162,8 +169,9 @@ namespace NEOTwewyArchipelagoMod
                 ArchipelagoLocationID archipelagoLocationId;
                 try
                 {
-                    archipelagoLocationId =  gameLocationID.ToArchipelagoLocation(LocationType.PigDrop);
-                } catch
+                    archipelagoLocationId = gameLocationID.ToArchipelagoLocation(LocationType.PigDrop);
+                }
+                catch
                 {
                     continue;
                 }
@@ -171,6 +179,12 @@ namespace NEOTwewyArchipelagoMod
                 if (Core.save.TryGetArchipelagoItem(archipelagoLocationId, out ArchipelagoItem item))
                 {
                     //MelonLogger.Msg($"gameID {gameLocationID} archiID {item.locationID} newItem {item.name}");
+
+                    if (item.itemType != ItemType.AllItems)
+                    {
+                        pigData.mDrop = UIUtility.GetBadgeLabel(MasterDataBase<AllItems>.Get((int)Core.ARCHIPELAGO_ITEM_ID));
+                        continue;
+                    }
 
                     AllItems itemObject = MasterDataBase<AllItems>.Get((int)item.id);
                     ItemConst.EItemType itemType = itemObject.ItemType;
@@ -189,6 +203,60 @@ namespace NEOTwewyArchipelagoMod
 
             }
             __pigInitialized = true;
+        }
+
+        public static void InitializeSNSPoints()
+        {
+            if (!__snsPointsInitialized && isSynced())
+            {
+                __snsPointsInitialized = true;
+                //MelonLogger.Msg($"Creating shop UI data {dataID}");
+                var skills = MasterDataBase<Skill>.Array;
+
+                var skillTrees = MasterDataBase<SkillTree>.Array;
+                foreach (SkillTree skillTree in skillTrees)
+                {
+                    if(skillTree.mSkill == Skill.ELabel.Invalid) { continue; }
+                    Skill skill = MasterDataBase<Skill>.Get((int)skillTree.mSkill);
+                    if(skill.Name == "SKL_Name_0033")
+                    { //Restaurants should only require one visit otherwise they can be grindy
+                        skillTree.mReleaseValue = 1;
+                    }
+                }
+                
+
+                foreach (Skill skill in skills)
+                {
+                    GameLocationID gameLocationID = new GameLocationID(skill.Id);
+                    ArchipelagoLocationID archipelagoLocationID = gameLocationID.ToArchipelagoLocation(LocationType.Skill);
+
+                    if (ModOptions.fp_costs.TryGetValue((int)archipelagoLocationID.Value, out int fp))
+                    {
+                        skill.mPoint = fp;
+                    }
+                    //if(Core.DEBUG) { skill.mPoint = 1; }
+
+
+
+
+                    //Also initialize "container" rewards
+                    if (!archipelagoLocationID.TryGetItem(out ArchipelagoItem item)) { continue; }
+                    if (skill.mShopReward != AllItems.ELabel.Invalid)
+                    {
+
+                        if (item.itemType != ItemType.AllItems || item.count > 1)
+                        {
+                            skill.mShopReward = (AllItems.ELabel)Core.ARCHIPELAGO_ITEM_ID;
+                            continue;
+                        }
+                        else
+                        {
+                            skill.mShopReward = (AllItems.ELabel)item.id;
+                        }
+
+                    }
+                }
+            }
         }
     }
 }

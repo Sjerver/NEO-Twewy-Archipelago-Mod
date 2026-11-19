@@ -10,6 +10,7 @@ using Microsoft.VisualBasic;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -72,7 +73,8 @@ namespace NEOTwewyArchipelagoMod
         public void setSeed(string seed) { Data.Seed = seed; Save(); }
 
         public void UpdateSlotData(Dictionary<string, object> slotData)
-        {
+        {//TODO: move slot data handling to ModOptions?
+            //TODO: We can make our own SLOTData class to read/prase this beetter
             if (Core.syncState == SyncState.WrongSeed) { return; }
             foreach (KeyValuePair<string, object> entry in slotData)
             {
@@ -102,7 +104,7 @@ namespace NEOTwewyArchipelagoMod
                 catch (Exception e)
                 {
                     MelonLogger.Error(e);
-                    MelonLogger.MsgDirect(MelonLoader.Logging.ColorARGB.Red, "File missing, please make sure you installed the mod correctly!");
+                    MelonLogger.MsgDirect(MelonLoader.Logging.ColorARGB.Red, $"File missing at {NOISE_INFO_PATH}, please make sure you installed the mod correctly!");
                     return;
                 }
 
@@ -191,9 +193,89 @@ namespace NEOTwewyArchipelagoMod
             return Data.rewardQueue.Count;
         }
 
-        public  void enqueueLocation(ArchipelagoLocationID location)
+        public void enqueueLocation(ArchipelagoLocationID location)
         {
             if (Core.syncState == SyncState.WrongSeed) { return; }
+
+            if (IsLocationChecked(location)) { return; }
+
+            if (TryGetArchipelagoItem(location, out ArchipelagoItem item))
+            {//Get valid Archipelago Item
+                bool archipelagoItemCheck = false;
+                bool customDisplay = false;
+
+                LocationType type = location.GetLocationType();
+                switch (type)
+                {
+                    case LocationType.ScenarioReward:
+                    case LocationType.DLC:
+                    case LocationType.SocialNode:
+                    case LocationType.VIP:
+                        //"Normal Items" get stopped and handled via server
+                        //Archipelago Items need extra display that they were found
+                        archipelagoItemCheck = true;
+                        break;
+
+                    case LocationType.DiveReward:
+                        //FP and 1x count items can be displayed normally
+                        //With the new dialogPatch we can also show ArchipelagoItems and Count>1
+                        //Other item types are handled via server
+                        break;
+
+                    case LocationType.NoiseDrop:
+                    case LocationType.PigDrop:
+                        //Badges can be done normally, count 1 only
+                        //Therfore we cant let everything be handled via receivedItems
+
+                        archipelagoItemCheck = true;
+                        break;
+
+                    case LocationType.ShopGood:
+                        //Shops can display archi items naturally
+                        //Non-shop items like FP or non AllItems are handled via server
+                        break;
+
+                    case LocationType.Skill:
+                        //Skills can display archi item naturally
+                        //Everything but "container items" are handled via server
+                        break;
+
+                    case LocationType.Vanilla:
+                    case LocationType.ArchipelagoReceive:
+                        break;
+
+                    default:
+                        MelonLogger.Error($"No custom item handling for location type {type}");
+                        break;
+                    }
+
+                if (archipelagoItemCheck && item.id == Core.ARCHIPELAGO_ITEM_ID) { customDisplay = true;}
+                if (customDisplay)
+                {
+                    switch (item.itemType)
+                    {
+                        case ItemType.AllItems:
+                        case ItemType.OtherGame:
+                            Core.archiItemDisplayQueue.Enqueue(item);
+                            break;
+
+                        case ItemType.SocialNode:
+                        case ItemType.VIP:
+                            //MelonLogger.MsgDirect(MelonLoader.Logging.ColorARGB.Red,"CharacterNode item not implemented yet");
+                            //Currently we dont need to do anything here, since always handled by server
+                            break;
+
+                        default:
+                            MelonLogger.Error($"No custom item handling for item type {item.itemType}");
+                            break;
+                    }
+                }
+            }
+            else
+            {
+                if (Core.DEBUG) { MelonLogger.Msg($"Tried to queue non real location {location} {location.GetLocationType()}"); }
+            }
+
             Data.pendingLocations.Enqueue(location);
             addCheckedLocation(location);
             Save();
@@ -220,7 +302,15 @@ namespace NEOTwewyArchipelagoMod
 
         public ArchipelagoLocationID dequeueLocation() { return Data.pendingLocations.Dequeue(); }
 
-        public QueuedReward dequeueReward() { return Data.rewardQueue.Dequeue(); }
+        public QueuedReward dequeueReward() { 
+            if(Data.rewardQueue.TryDequeue(out QueuedReward reward))
+            {
+                return reward;
+            } else {
+                MelonLogger.Error("Reward queue is empty");
+                return null;
+            }
+        }
 
         public void SaveArchipelagoLocations(Dictionary<long, ScoutedItemInfo> locationData)
         {
@@ -246,7 +336,7 @@ namespace NEOTwewyArchipelagoMod
                     //MelonLogger.Msg($"Location {entry.Value.LocationDisplayName} ({entry.Key}) has {entry.Value.ItemName} ({entry.Value.ItemId})");
                     if(locType != LocationType.Vanilla && locType != LocationType.ArchipelagoReceive)
                     {
-                        Data.locationMappings[locType].Add(keyID.ToGameLocation(), FromScoutedItem(itemID, entry.Value));
+                        Data.locationMappings[locType].Add(keyID.ToGameLocation(), new ArchipelagoItem (itemID, entry.Value));
                     }
                     
 
@@ -260,34 +350,21 @@ namespace NEOTwewyArchipelagoMod
             ArchipelagoData.DataLoaded = true;
         }
 
-        public void CompareCheckedLocations(List<long> allCheckedLocations)
+        public bool IsHintedForDay(int day)
         {
-            //TODO: Compare locations from server(param) to local saved locations
-            //send ones missing at the server?
-        }
-
-        public static ArchipelagoItem FromScoutedItem(long id, ScoutedItemInfo info)
-        {
-            long itemCount = 1;
-            ItemType itemType = ItemType.OtherGame;
-            if (info.ItemGame == Core.GAME_NAME && info.Player.Name == Config.Data.slotName)
+            if (Data.hintedForDay.ContainsKey(day))
             {
-                itemCount = NEOTwewyDataManager.item_data[info.ItemName].count;
-                itemType = NEOTwewyDataManager.item_data[info.ItemName].type;
+                MelonLogger.Msg($"{day} ->{Data.hintedForDay[day]}");
+                return Data.hintedForDay[day];
             }
-
-
-                return new ArchipelagoItem(
-                    id,
-                    info.ItemName,
-                    new ArchipelagoLocationID(info.LocationId),
-                    info.LocationName,
-                    info.ItemId,
-                    info.ItemGame,
-                    itemCount,
-                    info.Player.Name
-                );
+            return false;
         }
+
+        public void SetHintedForDay(int day)
+        {
+            Data.hintedForDay[day] = true;
+        }
+
     }
 
     public class ModSaveData
@@ -307,7 +384,7 @@ namespace NEOTwewyArchipelagoMod
         public bool goalAchieved { get; set; } = false;
         //Remember we achieved or goal in case we could not tell the server as such
 
-        public Queue<QueuedReward> rewardQueue { get; set; } = new Queue<QueuedReward>();
+        public ConcurrentQueue<QueuedReward> rewardQueue { get; set; } = new ConcurrentQueue<QueuedReward>();
         //Remember what is currently in the reward queue when the game closed
 
         //
@@ -329,6 +406,8 @@ namespace NEOTwewyArchipelagoMod
             return new_dict;
         }
 
+        public Dictionary<int, bool> hintedForDay { get; set; } = new Dictionary<int, bool>();
+
     }
 
     public class NoiseDropInfo(int drop_multiplier, bool chainable, bool blue_noise)
@@ -340,8 +419,8 @@ namespace NEOTwewyArchipelagoMod
 
     public enum SyncState
     {
-        Offline,        // No connection
-        Ready,          // Connected to matching room
+        NoConnection,        // No connection
+        Connected,          // Connected to matching room
         WrongSeed       // Connected, but save belongs to different room
     }
 
